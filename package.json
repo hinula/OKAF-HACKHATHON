@@ -1,8 +1,9 @@
 {
   "name": "akillitrafiksistemi",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -10,8 +11,10 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "cors": "^2.8.6",
-    "express": "^5.2.1",
-    "socket.io": "^4.8.3"
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "jsmodbus": "^4.0.10",
+    "net": "^1.0.2",
+    "socket.io": "^4.7.2"
   }
 }
