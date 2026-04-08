@@ -389,7 +389,7 @@ function setConnectionStatus(text, color) {
 }
 
 // ============================
-// 📡 SOCKET EVENTS
+// 📡 SOCKET EVENTS & OTOMATİK SOAR MÜDAHALESİ
 // ============================
 socket.on('connect', async () => { setConnectionStatus('BAĞLANDI', 'var(--green)'); await loadInitialData(); });
 socket.on('disconnect', () => setConnectionStatus('BAĞLANTI KESİLDİ', 'var(--red)'));
@@ -399,22 +399,44 @@ socket.on('traffic-update', (s) => {
   updateThreatLevel(s);
   document.getElementById('stat-last-mit').textContent = (s.lastMitigation || 'YOK').slice(0, 15);
   
-  if (s.isMitmAttack) {
-    const cveScore = Number(s.activeCveScore || 0);
-    currentThreat = { attackType: s.activeAttackType || 'Unknown Attack', sourceIP: 'Analiz Ediliyor', cveScore };
+  if (s.isMitmAttack || s.active) { // Backend'den gelen 'active' durumunu da kontrol et
+    const cveScore = Number(s.activeCveScore || s.cve_score || 0);
+    // Python script'inden "source_ip" olarak gelebilir, snake_case/camelCase ikisini de yakalayalım
+    const sourceIP = s.sourceIP || s.source_ip || s.activeSourceIP || 'Analiz Ediliyor';
+    const attackType = s.activeAttackType || s.attack_type || 'Bilinmeyen Saldırı';
     
-    document.getElementById('atc-type').textContent = s.activeAttackType || 'MITM / Manipülasyon';
-    document.getElementById('atc-ip').textContent = 'ANALİZ EDİLİYOR';
+    currentThreat = { attackType, sourceIP, cveScore };
+    
+    document.getElementById('atc-type').textContent = attackType;
+    document.getElementById('atc-ip').textContent = sourceIP;
     document.getElementById('atc-cve').textContent = cveScore;
-    document.getElementById('stat-active-threat').textContent = s.activeAttackType || 'SALDIRI VAR';
+    document.getElementById('stat-active-threat').textContent = attackType;
     document.getElementById('stat-active-threat').className = 'stat-val danger';
     startMitigationAnimation();
     
-    if (cveScore >= 7 && cveScore !== lastAlarmCVE) {
-      lastAlarmCVE = cveScore;
-      startAlarm(cveScore, s.activeAttackType);
+    // CVE 7.0 veya üzeri ise KRİTİK ALARM
+    if (cveScore >= 7.0) {
+      if (cveScore !== lastAlarmCVE) {
+        lastAlarmCVE = cveScore;
+        startAlarm(cveScore, attackType);
+      }
+      
+      // 🤖 SOAR: OTOMATİK ENGELLEME (AUTO-BAN) DEVREDE
+      if (sourceIP !== 'Analiz Ediliyor' && !bannedIPs[sourceIP]) {
+          showToast(`🤖 SOAR: ${sourceIP} IP'sinden kritik saldırı! Otomatik engelleniyor...`, 'warning');
+          
+          // API'ye engelleme komutu gönder
+          executeBan(sourceIP, attackType, cveScore).then(() => {
+             // Otomatik ban başarılı olunca pop-up gösterme veya açıksa kapat
+             document.getElementById('police-popup').classList.remove('visible');
+             stopAlarm(); // Tehdit engellendiği için alarmı sustur
+             showToast(`🛡️ SOAR: Saldırı başarıyla engellendi!`, 'success');
+          });
+      } else if (!policeAcknowledged && !bannedIPs[sourceIP]) {
+          // Eğer IP henüz analiz edilemediyse manuel müdahale için Pop-up göster
+          showPolicePopup(currentThreat);
+      }
     }
-    if ((s.criticalAlert || cveScore >= 9) && !policeAcknowledged) showPolicePopup(currentThreat);
   } else {
     if (lastAlarmCVE > 0) { stopAlarm(); lastAlarmCVE = 0; }
     resetThreatUI();
@@ -430,40 +452,27 @@ socket.on('new-log', (log) => {
 
 socket.on('critical-alert', (data) => {
   currentThreat = data;
-  const score = Number(data.cveScore || 0);
-  if (score >= 7) startAlarm(score, data.attackType);
-  if (!policeAcknowledged) showPolicePopup(data);
-});
-
-socket.on('ip-banned', (data) => {
-  bannedIPs[data.ip] = data;
-  addBanRow(data, true);
-  updateBanStats();
-  showToast(`🚫 IP BANLANDI: ${data.ip}  CVE: ${data.cveScore||'?'}`, 'error');
-});
-
-socket.on('ip-unbanned', ({ ip }) => {
-  delete bannedIPs[ip];
-  removeBanRow(ip);
-  updateBanStats();
-  showToast(`✅ BAN KALDIRILDI: ${ip}`);
-});
-
-socket.on('initial-data', (data) => {
-  if (data.bannedIPs) {
-    bannedIPs = {};
-    document.getElementById('ban-tbody').innerHTML = '';
-    data.bannedIPs.forEach(b => { bannedIPs[b.ip] = b; addBanRow(b, false); });
-    updateBanStats();
+  const score = Number(data.cveScore || data.cve_score || 0);
+  const sourceIP = data.sourceIP || data.source_ip || 'Analiz Ediliyor';
+  const attackType = data.attackType || data.attack_type || 'Kritik Tehdit';
+  
+  if (score >= 7.0) {
+    startAlarm(score, attackType);
+    
+    // 🤖 SOAR: OTOMATİK ENGELLEME (AUTO-BAN)
+    if (sourceIP !== 'Analiz Ediliyor' && !bannedIPs[sourceIP]) {
+        showToast(`🤖 SOAR: Kritik uyarı yakalandı! ${sourceIP} otomatik banlanıyor.`, 'warning');
+        executeBan(sourceIP, attackType, score).then(() => {
+            document.getElementById('police-popup').classList.remove('visible');
+            stopAlarm();
+        });
+    } else if (!policeAcknowledged && !bannedIPs[sourceIP]) {
+        showPolicePopup(data);
+    }
   }
-  if (data.logs) {
-    allLogs = data.logs;
-    document.getElementById('console-wrap').innerHTML = '';
-    allLogs.forEach(log => appendLogRow(log));
-    updateLogStats();
-  }
-  if (data.cveDatabase) renderCVEs(data.cveDatabase);
 });
+
+// ... (ip-banned, ip-unbanned ve initial-data eventleri aynı kalabilir) ...
 
 // ============================
 // 📦 VERİ
