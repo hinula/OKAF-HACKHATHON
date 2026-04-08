@@ -41,7 +41,7 @@
             gap: 20px;
         }
 
-        /* Sol Panel: Işık Görseli */
+       
         .traffic-box {
             background: var(--panel-bg);
             padding: 20px;
@@ -143,14 +143,14 @@
 
 <header>
     <div>
-        <h2>AYKOME - Akıllı Trafik Yönetim Sistemi</h2>
-        <small>Kavşak ID: TR-34-K42 | Konum: Atatürk Bulvarı</small>
+        <h2>Akıllı Trafik Yönetim Sistemi</h2>
+        <small>Kavşak ID: TR-55-KNH-26-16-58 | Konum: Fen FAK. D1</small>
     </div>
     <div id="system-clock">00:00:00</div>
 </header>
 
 <div class="main-grid">
-    <!-- SOL: IŞIK DURUMU -->
+   
     <div class="traffic-box">
         <h3>Canlı Durum</h3>
         <div class="traffic-light">
@@ -162,7 +162,6 @@
         <p id="mode-text" style="margin-top:10px; font-weight: bold;">MOD: SİSTEM BAŞLATILIYOR</p>
     </div>
 
-    <!-- ORTA: ANALİTİK -->
     <div class="content">
         <div class="stat-card" style="border-left-color: var(--success); margin-bottom: 15px;">
             <h4>Yeşil Dalga Uyumu</h4>
@@ -195,7 +194,7 @@
         </div>
     </div>
 
-    <!-- SAĞ: SİSTEM GÜNLÜĞÜ -->
+
     <div>
         <h3 style="margin-bottom: 10px;">Sistem Günlüğü (Log)</h3>
         <div class="log-panel" id="log-panel">
@@ -205,12 +204,12 @@
 </div>
 
 <script>
-    // --- KONFİGÜRASYON VE SUNUCU BAĞLANTISI ---
-    const API_URL = "https://senin-sunucu-adresin.com/api"; // Buraya backend adresini yazacaksın
+ 
+    const API_URL = "http://localhost:3000/api"; 
     let currentMode = "AUTO";
-    let socket = null; // WebSocket kullanılabilir
+    let socket = null;
 
-    // Simülasyon verileri (Sunucu yokken çalışması için)
+  
     let state = {
         light: 'red',
         timer: 30,
@@ -218,22 +217,14 @@
         wave: true
     };
 
-    // Zamanı güncelle
     setInterval(() => {
         const now = new Date();
         document.getElementById('system-clock').innerText = now.toLocaleTimeString('tr-TR');
     }, 1000);
 
-    // Ana Döngü (Sunucudan veri çekme simülasyonu)
+  
     async function updateSystem() {
         try {
-            /* Gerçek kullanımda:
-            const response = await fetch(`${API_URL}/status`);
-            const data = await response.json();
-            updateUI(data);
-            */
-            
-            // Simüle edilmiş veri döngüsü
             if(state.timer > 0) {
                 state.timer--;
             } else {
@@ -247,11 +238,11 @@
     }
 
     function renderUI() {
-        // Işıkları güncelle
+    
         document.querySelectorAll('.light').forEach(l => l.classList.remove('active'));
         document.getElementById(state.light).classList.add('active');
         
-        // Metinleri güncelle
+        
         document.getElementById('timer-display').innerText = state.timer + "s";
         document.getElementById('car-count').innerText = state.cars + " Araç/Dk";
         document.getElementById('wave-status').innerText = state.wave ? "AKTİF - %85 VERİMLİLİK" : "PASİF";
