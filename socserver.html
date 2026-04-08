@@ -190,6 +190,7 @@ body{display:flex;flex-direction:column;}
   </div>
 </div>
 
+<!-- ALARM BAR -->
 <div id="alarm-bar">
   <span class="alarm-icon">🚨</span>
   <span class="alarm-text" id="alarm-text">KRİTİK CVE ALARMI</span>
@@ -236,6 +237,7 @@ body{display:flex;flex-direction:column;}
         <input class="inp" id="unban-ip" placeholder="Unban edilecek IP"/>
         <button class="btn btn-green" onclick="manualUnban()">UNBAN</button>
       </div>
+      <!-- 💣 BAMLA BUTONU -->
       <div class="form-row" style="margin-top:12px;">
         <button class="btn btn-bamla pulse-glow" style="width:100%;font-size:.9rem;" onclick="bamlaCurrentThreat()">
           💣 BAMLA — TEHDİDİ YOK ET
@@ -281,6 +283,7 @@ body{display:flex;flex-direction:column;}
   </div>
 </div>
 
+<!-- KRİTİK SALDIRI POP-UP -->
 <div id="police-popup">
   <div class="police-modal" id="police-modal">
     <div class="police-icon">🚨</div>
@@ -386,7 +389,7 @@ function setConnectionStatus(text, color) {
 }
 
 // ============================
-// 📡 SOCKET EVENTS & AUTO-MITIGATION
+// 📡 SOCKET EVENTS
 // ============================
 socket.on('connect', async () => { setConnectionStatus('BAĞLANDI', 'var(--green)'); await loadInitialData(); });
 socket.on('disconnect', () => setConnectionStatus('BAĞLANTI KESİLDİ', 'var(--red)'));
@@ -398,32 +401,20 @@ socket.on('traffic-update', (s) => {
   
   if (s.isMitmAttack) {
     const cveScore = Number(s.activeCveScore || 0);
-    // Eğer backend IP yollamıyorsa varsayılan göster
-    const sourceIP = s.sourceIP || s.activeSourceIP || 'Analiz Ediliyor';
-    currentThreat = { attackType: s.activeAttackType || 'Unknown Attack', sourceIP, cveScore };
+    currentThreat = { attackType: s.activeAttackType || 'Unknown Attack', sourceIP: 'Analiz Ediliyor', cveScore };
     
     document.getElementById('atc-type').textContent = s.activeAttackType || 'MITM / Manipülasyon';
-    document.getElementById('atc-ip').textContent = sourceIP;
+    document.getElementById('atc-ip').textContent = 'ANALİZ EDİLİYOR';
     document.getElementById('atc-cve').textContent = cveScore;
     document.getElementById('stat-active-threat').textContent = s.activeAttackType || 'SALDIRI VAR';
     document.getElementById('stat-active-threat').className = 'stat-val danger';
     startMitigationAnimation();
     
-    // YENİ EŞİK: 7.0
-    if (cveScore >= 7.0 && cveScore !== lastAlarmCVE) {
+    if (cveScore >= 7 && cveScore !== lastAlarmCVE) {
       lastAlarmCVE = cveScore;
       startAlarm(cveScore, s.activeAttackType);
     }
-    
-    // POPUP TETİKLEYİCİ
-    if ((s.criticalAlert || cveScore >= 7.0) && !policeAcknowledged) showPolicePopup(currentThreat);
-
-    // 🛡️ OTOMATİK MÜDAHALE (SOAR)
-    if (cveScore >= 7.0 && sourceIP !== 'Analiz Ediliyor' && !bannedIPs[sourceIP]) {
-        showToast(`🤖 SOAR: ${sourceIP} otomatik olarak engelleniyor!`, 'warning');
-        executeBan(sourceIP, s.activeAttackType || 'Otomatik Savunma', cveScore);
-    }
-
+    if ((s.criticalAlert || cveScore >= 9) && !policeAcknowledged) showPolicePopup(currentThreat);
   } else {
     if (lastAlarmCVE > 0) { stopAlarm(); lastAlarmCVE = 0; }
     resetThreatUI();
@@ -440,16 +431,8 @@ socket.on('new-log', (log) => {
 socket.on('critical-alert', (data) => {
   currentThreat = data;
   const score = Number(data.cveScore || 0);
-  
-  // YENİ EŞİK: 7.0
-  if (score >= 7.0) startAlarm(score, data.attackType);
-  if (score >= 7.0 && !policeAcknowledged) showPolicePopup(data);
-
-  // 🛡️ OTOMATİK MÜDAHALE (SOAR)
-  if (score >= 7.0 && data.sourceIP && data.sourceIP !== 'Analiz Ediliyor' && !bannedIPs[data.sourceIP]) {
-      showToast(`🤖 SOAR: ${data.sourceIP} otomatik olarak engelleniyor!`, 'warning');
-      executeBan(data.sourceIP, data.attackType || 'Otomatik Savunma', score);
-  }
+  if (score >= 7) startAlarm(score, data.attackType);
+  if (!policeAcknowledged) showPolicePopup(data);
 });
 
 socket.on('ip-banned', (data) => {
@@ -547,13 +530,13 @@ function renderCVEs(cves) {
   const sorted = [...cves].sort((a,b) => b.score - a.score);
   
   document.getElementById('cve-list').innerHTML = sorted.map(c => {
-    const sc = c.score >= 7.0 ? 'var(--red)' : c.score >= 4.0 ? 'var(--orange)' : 'var(--green)';
-    const badge = c.score >= 7.0
+    const sc = c.score >= 9 ? 'var(--red)' : c.score >= 7 ? 'var(--orange)' : c.score >= 4 ? 'var(--yellow)' : 'var(--green)';
+    const badge = c.score >= 9
       ? `<span class="cve-alarm-badge" style="background:#ff2d4a22;color:var(--red);border:1px solid #ff2d4a66;">⚠️ KRİTİK</span>`
-      : c.score >= 4.0
+      : c.score >= 7
       ? `<span class="cve-alarm-badge" style="background:#ff880022;color:var(--orange);border:1px solid #ff880066;">HIGH</span>`
       : '';
-    return `<div class="cve-card ${c.score>=7.0?'high-risk':''}" onclick="this.classList.toggle('expanded')">
+    return `<div class="cve-card ${c.score>=7?'high-risk':''}" onclick="this.classList.toggle('expanded')">
       <div class="cve-top">
         <span class="cve-id">${c.id}</span>
         <span class="cve-score-pill" style="background:${sc}22;color:${sc};border:1px solid ${sc}44;">${Number(c.score).toFixed(1)} ${c.severity}</span>
@@ -580,7 +563,7 @@ function addBanRow(data, isNew=false) {
   const old = document.getElementById(rowId); if (old) old.remove();
   
   const t = new Date(data.bannedAt||Date.now()).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
-  const cc = Number(data.cveScore)>=7.0?'var(--red)':Number(data.cveScore)>=4.0?'var(--orange)':'var(--yellow)';
+  const cc = Number(data.cveScore)>=9?'var(--red)':Number(data.cveScore)>=7?'var(--orange)':'var(--yellow)';
   
   tbody.insertAdjacentHTML('afterbegin', `<tr id="${rowId}" ${isNew?'class="ban-row-new"':''}>
     <td style="font-family:'Share Tech Mono',monospace;color:var(--blue);">${data.ip}</td>
@@ -603,7 +586,7 @@ function updateThreatLevel(s) {
   ['secure','elevated','high','critical'].forEach(l => document.getElementById(`tlvl-${l}`).className = `tlvl ${l}`);
   const info = document.getElementById('threat-info-text');
   
-  if (s.criticalAlert || (s.isMitmAttack && Number(s.activeCveScore)>=7.0)) {
+  if (s.criticalAlert || (s.isMitmAttack && Number(s.activeCveScore)>=9)) {
     document.getElementById('tlvl-critical').className = 'tlvl critical active-critical';
     info.textContent = `KRİTİK SALDIRI: ${s.activeAttackType||'UNKNOWN'} | CVE ${s.activeCveScore||'-'}`;
     info.style.color = 'var(--red)';
@@ -658,11 +641,11 @@ function showPolicePopup(data) {
   document.getElementById('pd-type').textContent = data?.attackType || 'Unknown';
   document.getElementById('pd-ip').textContent = data?.sourceIP || 'Unknown';
   document.getElementById('pd-cve').textContent = score.toFixed(1);
-  document.getElementById('pd-severity').textContent = score>=7.0?'● CRITICAL':score>=4.0?'● HIGH':'● MEDIUM';
-  document.getElementById('pd-severity').style.color = score>=7.0?'var(--red)':score>=4.0?'var(--orange)':'var(--yellow)';
+  document.getElementById('pd-severity').textContent = score>=9?'● CRITICAL':score>=7?'● HIGH':'● MEDIUM';
+  document.getElementById('pd-severity').style.color = score>=9?'var(--red)':score>=7?'var(--orange)':'var(--yellow)';
   document.getElementById('pd-cve-fill').style.width = `${Math.min(100,(score/10)*100)}%`;
   const modal = document.getElementById('police-modal');
-  if (score >= 7.0) modal.classList.add('shake'); else modal.classList.remove('shake');
+  if (score >= 9) modal.classList.add('shake'); else modal.classList.remove('shake');
   document.getElementById('police-popup').classList.add('visible');
 }
 
@@ -672,7 +655,7 @@ function acknowledgePolice() {
 }
 
 // ============================
-// 💣 BAMLA & MÜDAHALE
+// 💣 BAMLA
 // ============================
 async function bamlaCurrentThreat() {
   let ip = null;
@@ -696,6 +679,7 @@ async function bamlaCurrentThreat() {
   if (r && r.success !== false) {
     document.getElementById('manual-ip').value = '';
     showToast(`💣 BAMLANDI: ${ip}`, 'error');
+    acknowledgePolice();
   }
 }
 
@@ -705,6 +689,8 @@ async function bamlaFromPopup() {
     return;
   }
   await executeBan(currentThreat.sourceIP, currentThreat.attackType||'BAMLA', currentThreat.cveScore||9.9);
+  document.getElementById('police-popup').classList.remove('visible');
+  stopAlarm();
   showToast(`💥 BAMLANDI: ${currentThreat.sourceIP}`, 'error');
 }
 
@@ -720,12 +706,6 @@ async function executeBan(ip, attackType, cveScore) {
     bannedIPs[ip] = banData;
     addBanRow(banData, true);
     updateBanStats();
-    
-    // Otomatik olarak pop-up'ı ve alarmı sustur
-    document.getElementById('police-popup').classList.remove('visible');
-    policeAcknowledged = true;
-    stopAlarm();
-
     return r;
   } catch(e) {
     showToast(`Hata: ${e.message}`, 'error');
@@ -765,6 +745,8 @@ async function mitigateFromPopup() {
     return acknowledgePolice();
   }
   await executeBan(currentThreat.sourceIP, currentThreat.attackType||'CRITICAL_ATTACK', currentThreat.cveScore||9.8);
+  document.getElementById('police-popup').classList.remove('visible');
+  stopAlarm();
   showToast('✅ Tehdit bertaraf edildi');
 }
 
