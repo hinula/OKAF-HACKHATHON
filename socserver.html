@@ -179,7 +179,7 @@ body{display:flex;flex-direction:column;}
 }
 .log-row{
   padding:3px 0;border-bottom:1px solid #0a1520;
-  display:grid;grid-template-columns:100px 120px 140px 1fr 60px 90px;
+  display:grid;grid-template-columns:92px 112px 128px 1fr 70px 64px 92px;
   gap:6px;font-size:.68rem;align-items:center;
   animation:logIn .3s ease;
 }
@@ -190,17 +190,23 @@ body{display:flex;flex-direction:column;}
 .log-type{color:var(--orange);}
 .log-payload{color:#aaa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .log-cve{text-align:right;}
+.log-sev{text-align:center;font-weight:700;letter-spacing:.5px;}
 .log-action{text-align:right;}
 .log-cve.crit{color:var(--red);}
 .log-cve.high{color:var(--orange);}
 .log-cve.ok{color:var(--green);}
+.sev-CRITICAL{color:var(--red);}
+.sev-HIGH{color:var(--orange);}
+.sev-MEDIUM{color:var(--yellow);}
+.sev-LOW{color:var(--green);}
+.sev-INFO{color:var(--blue);}
 .action-BLOCKED,.action-CRITICAL_ALERT,.action-IP_BANNED{color:var(--red);}
 .action-COOLDOWN_5MIN,.action-DETECTED{color:var(--orange);}
 .action-LOGGED,.action-UNBANNED,.action-CLEARED{color:var(--green);}
 .action-AUTO_BAN,.action-MANUAL_BAN{color:var(--red);font-weight:700;}
 .console-header-row{
   display:grid;
-  grid-template-columns:100px 120px 140px 1fr 60px 90px;
+  grid-template-columns:92px 112px 128px 1fr 70px 64px 92px;
   gap:6px;font-size:.6rem;color:var(--textd);padding:4px 0 8px;
   border-bottom:1px solid var(--border2);margin-bottom:4px;letter-spacing:1px;
   position:sticky;top:0;background:var(--bg2);z-index:2;
@@ -434,7 +440,7 @@ body{display:flex;flex-direction:column;}
     </div>
     <div class="card-body">
       <div class="console-header-row">
-        <span>ZAMAN</span><span>KAYNAK IP</span><span>SALDIRI TİPİ</span><span>PAYLOAD</span><span>CVE</span><span>AKSİYON</span>
+        <span>ZAMAN</span><span>KAYNAK IP</span><span>SALDIRI TİPİ</span><span>PAYLOAD</span><span>CVE</span><span>SEV</span><span>AKSİYON</span>
       </div>
       <div class="console-wrap" id="console-wrap"></div>
     </div>
@@ -525,6 +531,7 @@ let allLogs = [];
 let bannedIPs = {};
 let currentThreat = null;
 let policeAcknowledged = false;
+let logSyncBusy = false;
 
 // ─── CLOCK ───
 setInterval(() => {
@@ -562,9 +569,10 @@ socket.on('traffic-update', (s) => {
 });
 
 socket.on('new-log', (log) => {
-  allLogs.unshift(log);
+  const normalized = normalizeLog(log);
+  allLogs.unshift(normalized);
   if (allLogs.length > 200) allLogs.pop();
-  prependLogRow(log);
+  prependLogRow(normalized);
   document.getElementById('stat-log-count').textContent = allLogs.length;
   document.getElementById('log-count').textContent = allLogs.length + ' log';
 });
@@ -607,11 +615,11 @@ async function loadInitialData() {
     ]);
 
     // Logları yükle
-    allLogs = logs;
+    allLogs = logs.map(normalizeLog);
     document.getElementById('console-wrap').innerHTML = '';
-    logs.forEach(l => appendLogRow(l));
-    document.getElementById('stat-log-count').textContent = logs.length;
-    document.getElementById('log-count').textContent = logs.length + ' log';
+    allLogs.forEach(l => appendLogRow(l));
+    document.getElementById('stat-log-count').textContent = allLogs.length;
+    document.getElementById('log-count').textContent = allLogs.length + ' log';
 
     // Banlı IP'leri yükle
     bans.forEach(b => { bannedIPs[b.ip] = b; addBanRow(b); });
@@ -692,16 +700,35 @@ function startMitigationAnimation() {
 }
 
 // ─── LOG ROWS ───
+function normalizeLog(log) {
+  return {
+    id: log?.id || `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    timestamp: log?.timestamp || new Date().toISOString(),
+    sourceIP: log?.sourceIP || log?.ip || '—',
+    attackType: log?.attackType || log?.type || 'Unknown',
+    payload: log?.payload || log?.msg || '-',
+    cveScore: Number(log?.cveScore ?? log?.score ?? 0),
+    mitreId: log?.mitreId || '-',
+    action: log?.action || 'LOGGED',
+    severity: log?.severity || 'INFO'
+  };
+}
+
 function formatLogRow(log) {
   const t = new Date(log.timestamp).toLocaleTimeString('tr-TR');
-  const cveClass = log.cveScore >= 9 ? 'crit' : log.cveScore >= 7 ? 'high' : 'ok';
-  const cveText = log.cveScore > 0 ? parseFloat(log.cveScore).toFixed(1) : '—';
+  const score = Number(log.cveScore) || 0;
+  const cveClass = score >= 9 ? 'crit' : score >= 7 ? 'high' : 'ok';
+  const cveText = score > 0 ? score.toFixed(1) : '—';
+  const payloadText = `${log.payload || '-'}`.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const severity = `${log.severity || 'INFO'}`.toUpperCase();
+  const payloadTitle = `${log.severity} | ${log.mitreId}`;
   return `<div class="log-row">
     <span class="log-time">${t}</span>
     <span class="log-ip">${log.sourceIP||'—'}</span>
     <span class="log-type">${log.attackType||'—'}</span>
-    <span class="log-payload" title="${log.payload||''}">${log.payload||'—'}</span>
+    <span class="log-payload" title="${payloadTitle}">${payloadText}</span>
     <span class="log-cve ${cveClass}">${cveText}</span>
+    <span class="log-sev sev-${severity}">${severity.slice(0,4)}</span>
     <span class="log-action action-${log.action||''}">${log.action||'—'}</span>
   </div>`;
 }
@@ -717,7 +744,35 @@ function clearLogs() {
   document.getElementById('console-wrap').innerHTML = '';
   allLogs = [];
   document.getElementById('log-count').textContent = '0 log';
+  document.getElementById('stat-log-count').textContent = '0';
 }
+
+async function syncLogsFromBackend() {
+  if (logSyncBusy) return;
+  logSyncBusy = true;
+  try {
+    const logs = await fetch('/api/logs').then(r => r.json());
+    if (!Array.isArray(logs) || logs.length === 0) return;
+    const normalizedLogs = logs.map(normalizeLog);
+    const knownIds = new Set(allLogs.map(l => l.id));
+    const missing = normalizedLogs.filter(l => !knownIds.has(l.id));
+    if (missing.length === 0) return;
+
+    // API en yeni logu başta gönderiyor; UI akışını korumak için sırayla prepend.
+    missing.reverse().forEach(log => {
+      allLogs.unshift(log);
+      prependLogRow(log);
+    });
+    if (allLogs.length > 200) allLogs = allLogs.slice(0, 200);
+    document.getElementById('stat-log-count').textContent = allLogs.length;
+    document.getElementById('log-count').textContent = allLogs.length + ' log';
+  } catch(e) {
+    // Sessiz geç: websocket akışı varsa kullanıcı deneyimini bozma.
+  } finally {
+    logSyncBusy = false;
+  }
+}
+setInterval(syncLogsFromBackend, 4000);
 
 // ─── CVE RENDER ───
 function renderCVEs(cves) {
