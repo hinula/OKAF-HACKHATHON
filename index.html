@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Akıllı Trafik Yönetim Merkezi - Operatör Paneli</title>
+    <!-- Socket.io Kütüphanesini Dahil Ediyoruz -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
         :root {
             --bg-color: #f0f2f5;
@@ -21,6 +23,7 @@
             background-color: var(--bg-color);
             color: var(--dark-blue);
             padding: 20px;
+            transition: border 0.3s ease;
         }
 
         header {
@@ -41,7 +44,6 @@
             gap: 20px;
         }
 
-       
         .traffic-box {
             background: var(--panel-bg);
             padding: 20px;
@@ -67,14 +69,12 @@
             border-radius: 50%;
             background: #333;
             transition: 0.4s;
-            position: relative;
         }
         
         .light.red.active { background: #ff3e3e; box-shadow: 0 0 30px #ff3e3e; }
         .light.yellow.active { background: #ffcc00; box-shadow: 0 0 30px #ffcc00; }
         .light.green.active { background: #00ff88; box-shadow: 0 0 30px #00ff88; }
 
-        /* Orta Panel: Veriler ve Kontrol */
         .stats-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -93,7 +93,6 @@
         .stat-card h4 { font-size: 14px; color: #7f8c8d; text-transform: uppercase; }
         .stat-card p { font-size: 24px; font-weight: bold; margin-top: 5px; }
 
-        /* Sağ Panel: Durum ve Log */
         .log-panel {
             background: #1e272e;
             color: #d2dae2;
@@ -143,14 +142,13 @@
 
 <header>
     <div>
-        <h2>Akıllı Trafik Yönetim Sistemi</h2>
+        <h2>🚦 Akıllı Trafik Yönetim Sistemi</h2>
         <small>Kavşak ID: TR-55-KNH-26-16-58 | Konum: Fen FAK. D1</small>
     </div>
     <div id="system-clock">00:00:00</div>
 </header>
 
 <div class="main-grid">
-   
     <div class="traffic-box">
         <h3>Canlı Durum</h3>
         <div class="traffic-light">
@@ -159,7 +157,7 @@
             <div id="green" class="light green"></div>
         </div>
         <div id="timer-display" style="font-size: 40px; font-weight: bold;">--</div>
-        <p id="mode-text" style="margin-top:10px; font-weight: bold;">MOD: SİSTEM BAŞLATILIYOR</p>
+        <p id="mode-text" style="margin-top:10px; font-weight: bold;">MOD: BAĞLANILIYOR...</p>
     </div>
 
     <div class="content">
@@ -175,7 +173,7 @@
             </div>
             <div class="stat-card">
                 <h4>Bekleme Süresi</h4>
-                <p id="wait-time">12 Saniye</p>
+                <p id="wait-time">-- Saniye</p>
             </div>
             <div class="stat-card" style="border-left-color: var(--warning);">
                 <h4>Sensör Durumu</h4>
@@ -183,7 +181,7 @@
             </div>
             <div class="stat-card">
                 <h4>Sıradaki Faz</h4>
-                <p id="next-phase">Yükleniyor</p>
+                <p id="next-phase">Hesaplanıyor...</p>
             </div>
         </div>
 
@@ -194,7 +192,6 @@
         </div>
     </div>
 
-
     <div>
         <h3 style="margin-bottom: 10px;">Sistem Günlüğü (Log)</h3>
         <div class="log-panel" id="log-panel">
@@ -204,83 +201,80 @@
 </div>
 
 <script>
- 
+    // SUNUCU BAĞLANTISI
     const socket = io('https://okaf-hackhathon-1.onrender.com');
 
-socket.on('traffic-update', (data) => {
-    if (data.isMitmAttack) {
-        // Belediye panelinde kırmızı alarm göster
-        document.body.style.border = "10px solid red";
-        document.getElementById('mode-text').innerText = "KRİTİK HATA: SİBER SALDIRI!";
-    } else {
-        document.body.style.border = "none";
-
-  
+    // Yerel Durum Yönetimi
     let state = {
         light: 'red',
-        timer: 30,
-        cars: 45,
-        wave: true
+        timer: 0,
+        carCount: 0,
+        mode: 'BAĞLANTI BEKLENİYOR',
+        isMitmAttack: false
     };
 
+    // Saat Güncelleme
     setInterval(() => {
         const now = new Date();
         document.getElementById('system-clock').innerText = now.toLocaleTimeString('tr-TR');
     }, 1000);
 
-  
-    async function updateSystem() {
-        try {
-            
-        } catch (error) {
-            addLog("Bağlantı Hatası: Sunucuya ulaşılamıyor!");
-        }
-    }
+    // Backend'den Veri Gelince
+    socket.on('traffic-update', (data) => {
+        updateUI(data);
+    });
 
-    function renderUI() {
-    
+    function updateUI(data) {
+        // Saldırı Kontrolü
+        if (data.isMitmAttack) {
+            document.body.style.border = "15px solid red";
+            document.getElementById('mode-text').innerText = "🚨 KRİTİK HATA: SİBER SALDIRI!";
+            document.getElementById('mode-text').style.color = "red";
+            addLog("⚠️ UYARI: Paket Manipülasyonu Tespit Edildi!");
+        } else {
+            document.body.style.border = "none";
+            document.getElementById('mode-text').innerText = "MOD: " + (data.mode || "OTOMATİK");
+            document.getElementById('mode-text').style.color = "var(--dark-blue)";
+        }
+
+        // Işıkları Güncelle
         document.querySelectorAll('.light').forEach(l => l.classList.remove('active'));
-        document.getElementById(state.light).classList.add('active');
+        const activeLight = document.getElementById(data.light);
+        if (activeLight) activeLight.classList.add('active');
+
+        // Metrikleri Yazdır
+        document.getElementById('timer-display').innerText = data.timer + "s";
+        document.getElementById('car-count').innerText = data.carCount + " Araç/Dk";
+        document.getElementById('wait-time').innerText = (data.timer + 5) + " Saniye";
+        document.getElementById('wave-status').innerText = data.isMitmAttack ? "SENKRONİZASYON BOZULDU" : "AKTİF - %85 VERİMLİLİK";
+        document.getElementById('wave-status').className = data.isMitmAttack ? "" : "green-wave-active";
         
-        
-        document.getElementById('timer-display').innerText = state.timer + "s";
-        document.getElementById('car-count').innerText = state.cars + " Araç/Dk";
-        document.getElementById('wave-status').innerText = state.wave ? "AKTİF - %85 VERİMLİLİK" : "PASİF";
-        document.getElementById('wave-status').className = state.wave ? "green-wave-active" : "";
-        document.getElementById('mode-text').innerText = "MOD: " + currentMode;
+        // Sıradaki Fazı Tahmin Et
+        const next = { red: 'YEŞİL', green: 'SARI', yellow: 'KIRMIZI' };
+        document.getElementById('next-phase').innerText = next[data.light] || "BELİRSİZ";
     }
 
-    function nextPhase() {
-        const sequence = { red: 'green', green: 'yellow', yellow: 'red' };
-        state.light = sequence[state.light];
-        state.timer = state.light === 'yellow' ? 3 : 25;
-        
-        // Akıllı sistem: Yoğunluk fazlaysa yeşili uzat
-        if(state.light === 'green' && state.cars > 50) {
-            state.timer += 10;
-            addLog("Yoğunluk tespit edildi: Yeşil ışık 10sn uzatıldı.");
-        }
-        
-        addLog(`Faz değişti: ${state.light.toUpperCase()}`);
-    }
-
+    // Log Fonksiyonu
     function addLog(msg) {
         const logPanel = document.getElementById('log-panel');
         const time = new Date().toLocaleTimeString('tr-TR');
         logPanel.innerHTML = `<div class="log-entry"><span class="log-time">[${time}]</span> ${msg}</div>` + logPanel.innerHTML;
     }
 
+    // Mod Değiştirme (Backend'e gönderir)
     function setMode(mode) {
-        currentMode = mode;
-        addLog(`Sistem modu değiştirildi: ${mode}`);
-
+        addLog(`İstek Gönderildi: ${mode}`);
+        socket.emit('set-mode', { mode: mode }); 
     }
-        function updateUI(data) {
-    state = data;
-    renderUI();
-}
 
-    setInterval(updateSystem, 1000);
+    // Bağlantı Hataları
+    socket.on('connect_error', () => {
+        addLog("Bağlantı Hatası: Sunucuya ulaşılamıyor (Render uyuyor olabilir)...");
+    });
+
+    socket.on('connect', () => {
+        addLog("✅ Sunucuya başarıyla bağlandı.");
+    });
 </script>
 
 </body>
