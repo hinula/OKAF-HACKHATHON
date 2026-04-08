@@ -8,48 +8,76 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{
-    font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
+    font-family:Segoe UI,Tahoma;
     background:linear-gradient(135deg,#667eea,#764ba2);
     min-height:100vh;
     display:flex;
     justify-content:center;
     align-items:center;
-    padding:20px;
 }
+
 .container{display:flex;gap:30px;flex-wrap:wrap}
+
 .traffic-light{
     background:#1a252f;
     padding:30px;
     border-radius:30px;
-    box-shadow:0 20px 60px rgba(0,0,0,.4);
     display:flex;
     flex-direction:column;
-    gap:20px
+    gap:20px;
 }
+
 .light{
-    width:120px;height:120px;border-radius:50%;
-    background:#333;
+    width:120px;height:120px;
+    border-radius:50%;
+    opacity:.3;
     transition:.3s;
 }
-.light.active{box-shadow:0 0 40px currentColor}
-.red{background:#cc0000}
-.yellow{background:#cc8800}
-.green{background:#00cc00}
+
+.light.active{
+    opacity:1;
+    box-shadow:0 0 50px currentColor;
+}
+
+.red{background:#ff2d2d}
+.yellow{background:#ffd000}
+.green{background:#00ff6a}
 
 .control-panel{
     background:white;
     padding:30px;
     border-radius:20px;
-    min-width:320px
+    min-width:320px;
 }
-.timer{text-align:center;font-size:32px;font-weight:bold;color:#667eea;margin:15px 0}
-button{padding:12px;border:none;border-radius:10px;font-weight:bold;cursor:pointer}
-.btn-start{background:#00c853;color:white}
-.btn-stop{background:#ff5252;color:white}
-.btn-reset{background:#ffa726;color:white;width:100%;margin-top:10px}
-.status{text-align:center;margin-top:15px;font-weight:bold}
+
+.timer{
+    text-align:center;
+    font-size:32px;
+    font-weight:bold;
+    margin:10px 0;
+}
+
+.active-label{
+    text-align:center;
+    font-size:18px;
+    font-weight:bold;
+    margin-bottom:10px;
+}
+
 .status.running{color:green}
 .status.stopped{color:red}
+
+button{
+    padding:12px;
+    margin-top:5px;
+    border:none;
+    border-radius:10px;
+    font-weight:bold;
+    cursor:pointer;
+}
+.btn-start{background:#00c853;color:white}
+.btn-stop{background:#ff5252;color:white}
+.btn-reset{background:#ffa726;color:white;width:100%}
 </style>
 </head>
 
@@ -64,19 +92,12 @@ button{padding:12px;border:none;border-radius:10px;font-weight:bold;cursor:point
 </div>
 
 <div class="control-panel">
-<h2>🚦 Kontrol Paneli</h2>
 
-<label>Kırmızı Süre</label>
-<input type="range" min="1" max="20" value="5" oninput="setValue('red',this.value)">
-<p id="redValue">5 saniye</p>
+<h2 style="text-align:center">🚦 Kontrol Paneli</h2>
 
-<label>Sarı Süre</label>
-<input type="range" min="1" max="10" value="2" oninput="setValue('yellow',this.value)">
-<p id="yellowValue">2 saniye</p>
-
-<label>Yeşil Süre</label>
-<input type="range" min="1" max="20" value="5" oninput="setValue('green',this.value)">
-<p id="greenValue">5 saniye</p>
+<div class="active-label" id="activeLabel">
+Aktif Işık: —
+</div>
 
 <div class="timer" id="timer">--</div>
 
@@ -85,27 +106,29 @@ button{padding:12px;border:none;border-radius:10px;font-weight:bold;cursor:point
 <button class="btn-reset" onclick="reset()">Sıfırla</button>
 
 <div class="status stopped" id="status">Duruyor</div>
-</div>
 
+</div>
 </div>
 
 <script>
-let durations={red:5,yellow:2,green:5}
 let order=["red","yellow","green"]
+let durations={red:5,yellow:2,green:5}
 let index=0
-let timer=null
 let timeLeft=0
+let interval=null
 
-function setValue(color,val){
-    durations[color]=parseInt(val)
-    document.getElementById(color+"Value").innerText=val+" saniye"
-}
-
-function lightOn(color){
+function setActive(color){
     ["red","yellow","green"].forEach(c=>{
         document.getElementById(c+"Light").classList.remove("active")
     })
     document.getElementById(color+"Light").classList.add("active")
+
+    const label=document.getElementById("activeLabel")
+    label.innerText="Aktif Işık: "+color.toUpperCase()
+
+    if(color==="red") label.style.color="#ff2d2d"
+    if(color==="yellow") label.style.color="#c9a600"
+    if(color==="green") label.style.color="#00b248"
 }
 
 function tick(){
@@ -119,7 +142,7 @@ function tick(){
 
 function startCycle(){
     let color=order[index]
-    lightOn(color)
+    setActive(color)
     timeLeft=durations[color]
 }
 
@@ -128,11 +151,11 @@ function start(){
     document.getElementById("status").className="status running"
     index=0
     startCycle()
-    timer=setInterval(tick,1000)
+    interval=setInterval(tick,1000)
 }
 
 function stop(){
-    clearInterval(timer)
+    clearInterval(interval)
     document.getElementById("status").innerText="Duruyor"
     document.getElementById("status").className="status stopped"
 }
@@ -140,6 +163,7 @@ function stop(){
 function reset(){
     stop()
     document.getElementById("timer").innerText="--"
+    document.getElementById("activeLabel").innerText="Aktif Işık: —"
     ["red","yellow","green"].forEach(c=>{
         document.getElementById(c+"Light").classList.remove("active")
     })
