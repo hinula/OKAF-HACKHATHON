@@ -1,173 +1,293 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trafik Lambası Kontrol Paneli</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Akıllı Trafik Yönetim Merkezi - Operatör Paneli</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --panel-bg: #ffffff;
+            --primary: #1a73e8;
+            --success: #2ecc71;
+            --warning: #f1c40f;
+            --danger: #e74c3c;
+            --dark-blue: #2c3e50;
+        }
 
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{
-    font-family:Segoe UI,Tahoma;
-    background:linear-gradient(135deg,#667eea,#764ba2);
-    min-height:100vh;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-}
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        
+        body {
+            background-color: var(--bg-color);
+            color: var(--dark-blue);
+            padding: 20px;
+        }
 
-.container{display:flex;gap:30px;flex-wrap:wrap}
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--dark-blue);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
 
-.traffic-light{
-    background:#1a252f;
-    padding:30px;
-    border-radius:30px;
-    display:flex;
-    flex-direction:column;
-    gap:20px;
-}
+        .main-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr 300px;
+            gap: 20px;
+        }
 
-.light{
-    width:120px;height:120px;
-    border-radius:50%;
-    opacity:.3;
-    transition:.3s;
-}
+        /* Sol Panel: Işık Görseli */
+        .traffic-box {
+            background: var(--panel-bg);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
 
-.light.active{
-    opacity:1;
-    box-shadow:0 0 50px currentColor;
-}
+        .traffic-light {
+            background: #222;
+            width: 100px;
+            margin: 20px auto;
+            padding: 20px;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
 
-.red{background:#ff2d2d}
-.yellow{background:#ffd000}
-.green{background:#00ff6a}
+        .light {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #333;
+            transition: 0.4s;
+            position: relative;
+        }
+        
+        .light.red.active { background: #ff3e3e; box-shadow: 0 0 30px #ff3e3e; }
+        .light.yellow.active { background: #ffcc00; box-shadow: 0 0 30px #ffcc00; }
+        .light.green.active { background: #00ff88; box-shadow: 0 0 30px #00ff88; }
 
-.control-panel{
-    background:white;
-    padding:30px;
-    border-radius:20px;
-    min-width:320px;
-}
+        /* Orta Panel: Veriler ve Kontrol */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
 
-.timer{
-    text-align:center;
-    font-size:32px;
-    font-weight:bold;
-    margin:10px 0;
-}
+        .stat-card {
+            background: var(--panel-bg);
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 5px solid var(--primary);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
 
-.active-label{
-    text-align:center;
-    font-size:18px;
-    font-weight:bold;
-    margin-bottom:10px;
-}
+        .stat-card h4 { font-size: 14px; color: #7f8c8d; text-transform: uppercase; }
+        .stat-card p { font-size: 24px; font-weight: bold; margin-top: 5px; }
 
-.status.running{color:green}
-.status.stopped{color:red}
+        /* Sağ Panel: Durum ve Log */
+        .log-panel {
+            background: #1e272e;
+            color: #d2dae2;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 12px;
+            height: 400px;
+            overflow-y: auto;
+        }
 
-button{
-    padding:12px;
-    margin-top:5px;
-    border:none;
-    border-radius:10px;
-    font-weight:bold;
-    cursor:pointer;
-}
-.btn-start{background:#00c853;color:white}
-.btn-stop{background:#ff5252;color:white}
-.btn-reset{background:#ffa726;color:white;width:100%}
-</style>
+        .log-entry { margin-bottom: 8px; border-bottom: 1px solid #3d4e5d; padding-bottom: 4px; }
+        .log-time { color: var(--warning); margin-right: 5px; }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        .btn-auto { background: var(--success); color: white; }
+        .btn-manual { background: var(--primary); color: white; }
+        .btn-emergency { background: var(--danger); color: white; }
+
+        .green-wave-active {
+            animation: pulse 2s infinite;
+            color: var(--success);
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
 </head>
-
 <body>
 
-<div class="container">
+<header>
+    <div>
+        <h2>AYKOME - Akıllı Trafik Yönetim Sistemi</h2>
+        <small>Kavşak ID: TR-34-K42 | Konum: Atatürk Bulvarı</small>
+    </div>
+    <div id="system-clock">00:00:00</div>
+</header>
 
-<div class="traffic-light">
-    <div class="light red" id="redLight"></div>
-    <div class="light yellow" id="yellowLight"></div>
-    <div class="light green" id="greenLight"></div>
-</div>
+<div class="main-grid">
+    <!-- SOL: IŞIK DURUMU -->
+    <div class="traffic-box">
+        <h3>Canlı Durum</h3>
+        <div class="traffic-light">
+            <div id="red" class="light red"></div>
+            <div id="yellow" class="light yellow"></div>
+            <div id="green" class="light green"></div>
+        </div>
+        <div id="timer-display" style="font-size: 40px; font-weight: bold;">--</div>
+        <p id="mode-text" style="margin-top:10px; font-weight: bold;">MOD: SİSTEM BAŞLATILIYOR</p>
+    </div>
 
-<div class="control-panel">
+    <!-- ORTA: ANALİTİK -->
+    <div class="content">
+        <div class="stat-card" style="border-left-color: var(--success); margin-bottom: 15px;">
+            <h4>Yeşil Dalga Uyumu</h4>
+            <p id="wave-status">YÜKLENİYOR...</p>
+        </div>
 
-<h2 style="text-align:center">🚦 Kontrol Paneli</h2>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h4>Araç Yoğunluğu</h4>
+                <p id="car-count">0 Araç/Dk</p>
+            </div>
+            <div class="stat-card">
+                <h4>Bekleme Süresi</h4>
+                <p id="wait-time">12 Saniye</p>
+            </div>
+            <div class="stat-card" style="border-left-color: var(--warning);">
+                <h4>Sensör Durumu</h4>
+                <p id="sensor-health">Aktif %98</p>
+            </div>
+            <div class="stat-card">
+                <h4>Sıradaki Faz</h4>
+                <p id="next-phase">Yükleniyor</p>
+            </div>
+        </div>
 
-<div class="active-label" id="activeLabel">
-Aktif Işık: —
-</div>
+        <div class="btn-group">
+            <button class="btn-auto" onclick="setMode('AUTO')">OTOMATİK (AKILLI)</button>
+            <button class="btn-manual" onclick="setMode('MANUAL')">MANUEL KONTROL</button>
+            <button class="btn-emergency" onclick="setMode('EMERGENCY')">ACİL DURUM (FLAŞÖR)</button>
+        </div>
+    </div>
 
-<div class="timer" id="timer">--</div>
-
-<button class="btn-start" onclick="start()">Başlat</button>
-<button class="btn-stop" onclick="stop()">Durdur</button>
-<button class="btn-reset" onclick="reset()">Sıfırla</button>
-
-<div class="status stopped" id="status">Duruyor</div>
-
-</div>
+    <!-- SAĞ: SİSTEM GÜNLÜĞÜ -->
+    <div>
+        <h3 style="margin-bottom: 10px;">Sistem Günlüğü (Log)</h3>
+        <div class="log-panel" id="log-panel">
+            <div class="log-entry">Sistem başlatıldı, sunucu bağlantısı aranıyor...</div>
+        </div>
+    </div>
 </div>
 
 <script>
-let order=["red","yellow","green"]
-let durations={red:5,yellow:2,green:5}
-let index=0
-let timeLeft=0
-let interval=null
+    // --- KONFİGÜRASYON VE SUNUCU BAĞLANTISI ---
+    const API_URL = "https://senin-sunucu-adresin.com/api"; // Buraya backend adresini yazacaksın
+    let currentMode = "AUTO";
+    let socket = null; // WebSocket kullanılabilir
 
-function setActive(color){
-    ["red","yellow","green"].forEach(c=>{
-        document.getElementById(c+"Light").classList.remove("active")
-    })
-    document.getElementById(color+"Light").classList.add("active")
+    // Simülasyon verileri (Sunucu yokken çalışması için)
+    let state = {
+        light: 'red',
+        timer: 30,
+        cars: 45,
+        wave: true
+    };
 
-    const label=document.getElementById("activeLabel")
-    label.innerText="Aktif Işık: "+color.toUpperCase()
+    // Zamanı güncelle
+    setInterval(() => {
+        const now = new Date();
+        document.getElementById('system-clock').innerText = now.toLocaleTimeString('tr-TR');
+    }, 1000);
 
-    if(color==="red") label.style.color="#ff2d2d"
-    if(color==="yellow") label.style.color="#c9a600"
-    if(color==="green") label.style.color="#00b248"
-}
-
-function tick(){
-    document.getElementById("timer").innerText=timeLeft+"s"
-    if(timeLeft<=0){
-        index=(index+1)%3
-        startCycle()
+    // Ana Döngü (Sunucudan veri çekme simülasyonu)
+    async function updateSystem() {
+        try {
+            /* Gerçek kullanımda:
+            const response = await fetch(`${API_URL}/status`);
+            const data = await response.json();
+            updateUI(data);
+            */
+            
+            // Simüle edilmiş veri döngüsü
+            if(state.timer > 0) {
+                state.timer--;
+            } else {
+                nextPhase();
+            }
+            
+            renderUI();
+        } catch (error) {
+            addLog("Bağlantı Hatası: Sunucuya ulaşılamıyor!");
+        }
     }
-    timeLeft--
-}
 
-function startCycle(){
-    let color=order[index]
-    setActive(color)
-    timeLeft=durations[color]
-}
+    function renderUI() {
+        // Işıkları güncelle
+        document.querySelectorAll('.light').forEach(l => l.classList.remove('active'));
+        document.getElementById(state.light).classList.add('active');
+        
+        // Metinleri güncelle
+        document.getElementById('timer-display').innerText = state.timer + "s";
+        document.getElementById('car-count').innerText = state.cars + " Araç/Dk";
+        document.getElementById('wave-status').innerText = state.wave ? "AKTİF - %85 VERİMLİLİK" : "PASİF";
+        document.getElementById('wave-status').className = state.wave ? "green-wave-active" : "";
+        document.getElementById('mode-text').innerText = "MOD: " + currentMode;
+    }
 
-function start(){
-    document.getElementById("status").innerText="Çalışıyor"
-    document.getElementById("status").className="status running"
-    index=0
-    startCycle()
-    interval=setInterval(tick,1000)
-}
+    function nextPhase() {
+        const sequence = { red: 'green', green: 'yellow', yellow: 'red' };
+        state.light = sequence[state.light];
+        state.timer = state.light === 'yellow' ? 3 : 25;
+        
+        // Akıllı sistem: Yoğunluk fazlaysa yeşili uzat
+        if(state.light === 'green' && state.cars > 50) {
+            state.timer += 10;
+            addLog("Yoğunluk tespit edildi: Yeşil ışık 10sn uzatıldı.");
+        }
+        
+        addLog(`Faz değişti: ${state.light.toUpperCase()}`);
+    }
 
-function stop(){
-    clearInterval(interval)
-    document.getElementById("status").innerText="Duruyor"
-    document.getElementById("status").className="status stopped"
-}
+    function addLog(msg) {
+        const logPanel = document.getElementById('log-panel');
+        const time = new Date().toLocaleTimeString('tr-TR');
+        logPanel.innerHTML = `<div class="log-entry"><span class="log-time">[${time}]</span> ${msg}</div>` + logPanel.innerHTML;
+    }
 
-function reset(){
-    stop()
-    document.getElementById("timer").innerText="--"
-    document.getElementById("activeLabel").innerText="Aktif Işık: —"
-    ["red","yellow","green"].forEach(c=>{
-        document.getElementById(c+"Light").classList.remove("active")
-    })
-}
+    function setMode(mode) {
+        currentMode = mode;
+        addLog(`Sistem modu değiştirildi: ${mode}`);
+        // Sunucuya mod değişikliğini bildir
+        // fetch(`${API_URL}/set-mode`, { method: 'POST', body: JSON.stringify({mode}) });
+    }
+
+    // Her saniye güncelle
+    setInterval(updateSystem, 1000);
 </script>
 
 </body>
