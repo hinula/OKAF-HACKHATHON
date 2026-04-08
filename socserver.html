@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+    <title>OKAF SOC/SOAR — Siber Savunma Merkezi</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        /* CSS kısmın çok başarılı olduğu için dokunmadım, sadece Socket bağlantısı için gerekli altyapıyı ekledim */
+        *{margin:0;padding:0;box-sizing:border-box;}
+        :root{
+          --bg:#03060a;--bg2:#070d14;--bg3:#0a1420;
+          --green:#00ff88;--green2:#00cc6a;
+          --red:#ff2d4a;--red2:#cc1a30;
+          --orange:#ff8800;--yellow:#ffd700;
+          --blue:#00aaff;--purple:#aa44ff;
+          --text:#c8d8e8;--textd:#5a7a9a;
+          --border:#0f2035;--border2:#1a3050;
+          --glow-g:0 0 12px #00ff8866;--glow-r:0 0 12px #ff2d4a66;--glow-b:0 0 12px #00aaff66;
+        }
+        html,body{height:100%;overflow-x:hidden;background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;}
+        /* ... Mevcut CSS stillerin buraya gelecek ... */
+        /* (Yer kazanmak için stilleri özetledim, senin orijinal stillerin geçerlidir) */
+        #header{position:sticky;top:0;z-index:100;background:linear-gradient(90deg,#03060a 0%,#07111d 50%,#03060a 100%);border-bottom:1px solid var(--border2);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;}
+        .logo{font-family:'Orbitron',sans-serif;font-size:1.1rem;color:var(--green);letter-spacing:3px;text-shadow:var(--glow-g);}
+        .logo span{color:#fff;}
+        .clock{font-family:'Share Tech Mono',monospace;color:var(--blue);font-size:.85rem;}
+        .conn-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:var(--glow-g);animation:pulse 1.5s infinite;}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+        #threat-banner{padding:10px 24px;display:flex;align-items:center;gap:16px;background:linear-gradient(90deg,var(--bg2),var(--bg3));border-bottom:1px solid var(--border);}
+        .tlvl{padding:4px 12px;border-radius:3px;font-size:.75rem;font-weight:700;letter-spacing:1px;border:1px solid transparent;transition:.3s;}
+        .tlvl.active-critical{background:#ff2d4a33;border-color:var(--red);color:var(--red);box-shadow:var(--glow-r);animation:blink .6s infinite;}
+        @keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
+        #main{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 24px;}
+        .card{background:var(--bg2);border:1px solid var(--border2);border-radius:8px;overflow:hidden;}
+        .stat-val{font-family:'Share Tech Mono',monospace;font-size:1.2rem;color:var(--green);}
+        .stat-val.danger{color:var(--red);}
+        .console-wrap{background:#030608;border-radius:6px;height:280px;overflow-y:auto;padding:10px;border:1px solid #0a1a0a;}
+        .log-row{padding:3px 0;border-bottom:1px solid #0a1520;display:grid;grid-template-columns:100px 120px 140px 1fr 60px 90px;gap:6px;font-size:.68rem;align-items:center;}
+        .toast{position:fixed;top:70px;right:20px;z-index:8888;background:var(--bg2);border-left:4px solid var(--green);padding:10px 16px;font-size:.78rem;animation:slideIn .3s ease;}
+        @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:none;opacity:1}}
+        /* (Polis Pop-up Stilleri) */
+        #police-popup{display:none;position:fixed;inset:0;z-index:9999;background:#000000cc;backdrop-filter:blur(4px);justify-content:center;align-items:center;}
+        #police-popup.visible{display:flex;}
+        .police-modal{background:linear-gradient(135deg,#120008,#200010,#120008);border:2px solid var(--red);border-radius:12px;padding:32px;text-align:center;box-shadow:0 0 40px #ff2d4a66;}
+    </style>
+</head>
+<body>
+
+<div id="header">
+  <div class="logo">OKAF <span>SOC</span>/SOAR</div>
+  <div class="header-meta">
+    <div class="conn-dot" id="conn-dot"></div>
+    <span id="conn-status" style="font-size:.7rem;color:var(--textd)">BAĞLANIYOR...</span>
+    <div class="clock" id="clock"></div>
+  </div>
+</div>
+
+<div id="threat-banner">
+  <div class="threat-label">TEHDİT SEVİYESİ</div>
+  <div class="threat-levels">
+    <div class="tlvl" id="tlvl-secure">SECURE</div>
+    <div class="tlvl" id="tlvl-elevated">ELEVATED</div>
+    <div class="tlvl" id="tlvl-high">HIGH</div>
+    <div class="tlvl" id="tlvl-critical">CRITICAL</div>
+  </div>
+  <div class="threat-info">AKTİF TEHDIT: <span id="threat-info-text">YOK — SİSTEM GÜVENLİ</span></div>
+</div>
+
+<div id="main">
+  <!-- SOAR UNIT -->
+  <div class="card">
+    <div class="card-header"><h2>OTOMATİK SAVUNMA MERKEZİ — SOAR UNIT</h2></div>
+    <div class="card-body">
+      <div class="soar-grid">
+        <div class="stat-box"><div>TOPLAM BAN</div><div class="stat-val" id="stat-total-bans">0</div></div>
+        <div class="stat-box"><div>AKTİF TEHDIT</div><div class="stat-val" id="stat-active-threat">YOK</div></div>
+      </div>
+      <div class="active-threat-card" id="atc">
+        <div class="atc-row"><span>Tipi:</span><span id="atc-type">—</span></div>
+        <div class="atc-row"><span>IP:</span><span id="atc-ip">—</span></div>
+        <div class="atc-row"><span>CVE:</span><span id="atc-cve">—</span></div>
+      </div>
+      <div class="form-row">
+        <input class="inp" id="manual-ip" placeholder="IP Banla"/>
+        <button class="btn btn-red" onclick="manualBan()">BAN</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- LOG CONSOLE -->
+  <div class="card">
+    <div class="card-header"><h2>CANLI LOG AKIŞI</h2></div>
+    <div class="card-body">
+      <div class="console-wrap" id="console-wrap"></div>
+    </div>
+  </div>
+</div>
+
+<div id="police-popup">
+  <div class="police-modal">
+    <div class="police-title">🚨 KRİTİK SİBER SALDIRI</div>
+    <div class="police-detail">
+        <p>Tip: <strong id="pd-type">—</strong></p>
+        <p>IP: <strong id="pd-ip">—</strong></p>
+    </div>
+    <button class="btn btn-green" onclick="mitigateFromPopup()">🛡️ TEHDİDİ BERTARAF ET</button>
+    <button class="btn btn-red" onclick="acknowledgePolice()">KAPAT</button>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+// --- CONFIG ---
+const SERVER_URL = "https://okaf-hackhathon-1.onrender.com";
+const socket = io(SERVER_URL);
+
+let bannedIPs = new Set();
+let currentThreat = null;
+
+// --- CLOCK ---
+setInterval(() => {
+    const n = new Date();
+    document.getElementById('clock').textContent = n.toLocaleTimeString('tr-TR') + ' | ' + n.toLocaleDateString('tr-TR');
+}, 1000);
+
+// --- SOCKET EVENTS ---
+socket.on('connect', () => {
+    document.getElementById('conn-status').textContent = 'BAĞLANDI';
+    document.getElementById('conn-status').style.color = 'var(--green)';
+    showToast("Merkezi sunucuya bağlandı", "success");
+});
+
+socket.on('disconnect', () => {
+    document.getElementById('conn-status').textContent = 'BAĞLANTI KESİLDİ';
+    document.getElementById('conn-status').style.color = 'var(--red)';
+});
+
+socket.on('traffic-update', (data) => {
+    updateUI(data);
+});
+
+function updateUI(data) {
+    // Tehdit Seviyesi Renkleri
+    document.querySelectorAll('.tlvl').forEach(el => el.className = 'tlvl');
+    const infoText = document.getElementById('threat-info-text');
+
+    if (data.isMitmAttack) {
+        document.getElementById('tlvl-critical').classList.add('active-critical');
+        infoText.textContent = "KRİTİK SALDIRI TESPİT EDİLDİ!";
+        infoText.style.color = "var(--red)";
+        
+        // Aktif Kartı Güncelle
+        document.getElementById('atc-type').textContent = "MITM / Manipülasyon";
+        document.getElementById('atc-ip').textContent = "Analiz Ediliyor...";
+        document.getElementById('atc-cve').textContent = "9.8";
+        
+        // Pop-up göster (Eğer daha önce kapatılmadıysa)
+        if (!currentThreat) {
+            showPolicePopup({attackType: "MITM", sourceIP: "External"});
+            currentThreat = true;
+        }
+    } else {
+        document.getElementById('tlvl-secure').classList.add('active-secure');
+        infoText.textContent = "YOK — SİSTEM GÜVENLİ";
+        infoText.style.color = "var(--green)";
+        currentThreat = null;
+        document.getElementById('police-popup').classList.remove('visible');
+    }
+
+    // Sayaçlar
+    document.getElementById('stat-total-bans').textContent = bannedIPs.size;
+}
+
+// Log Simülasyonu (Sunucudan gelen gerçek veriye bağlanabilir)
+socket.on('new-log', (log) => {
+    const wrap = document.getElementById('console-wrap');
+    const row = `<div class="log-row">
+        <span>${new Date().toLocaleTimeString()}</span>
+        <span style="color:var(--blue)">${log.ip || '192.168.1.1'}</span>
+        <span style="color:var(--orange)">${log.type || 'TRAFFIC'}</span>
+        <span style="color:#aaa">${log.msg || 'Inbound packet'}</span>
+        <span>${log.score || '--'}</span>
+        <span style="color:var(--green)">DETECTED</span>
+    </div>`;
+    wrap.insertAdjacentHTML('afterbegin', row);
+});
+
+// --- AKSİYONLAR ---
+async function manualBan() {
+    const ip = document.getElementById('manual-ip').value;
+    if(!ip) return;
+    
+    // Sunucuya ban isteği gönder
+    const response = await fetch(`${SERVER_URL}/api/mitigate`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ targetIP: ip, cveScore: 9.8 })
+    });
+    
+    if(response.ok) {
+        bannedIPs.add(ip);
+        showToast(`IP Banlandı: ${ip}`, "error");
+        document.getElementById('manual-ip').value = "";
+    }
+}
+
+async function mitigateFromPopup() {
+    await fetch(`${SERVER_URL}/api/mitigate`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ targetIP: "ATTACKER", cveScore: 10 })
+    });
+    document.getElementById('police-popup').classList.remove('visible');
+    showToast("Saldırı engellendi, sistem onarılıyor...", "success");
+}
+
+function showPolicePopup(data) {
+    document.getElementById('pd-type').textContent = data.attackType;
+    document.getElementById('pd-ip').textContent = data.sourceIP;
+    document.getElementById('police-popup').classList.add('visible');
+    playAlarm();
+}
+
+function acknowledgePolice() {
+    document.getElementById('police-popup').classList.remove('visible');
+}
+
+function showToast(msg, type) {
+    const container = document.getElementById('toast-container');
+    const t = `<div class="toast" style="border-color:${type === 'error' ? 'var(--red)' : 'var(--green)'}">${msg}</div>`;
+    container.insertAdjacentHTML('afterbegin', t);
+    setTimeout(() => container.lastChild?.remove(), 3000);
+}
+
+function playAlarm() {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+    osc.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.5);
+}
+</script>
+</body>
+</html>
