@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Akıllı Trafik Yönetim Merkezi - Operatör Paneli</title>
-    <!-- Socket.io Kütüphanesini Dahil Ediyoruz -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
         :root {
@@ -15,6 +14,7 @@
             --warning: #f1c40f;
             --danger: #e74c3c;
             --dark-blue: #2c3e50;
+            --purple: #8e44ad; /* Yeni renk eklendi */
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
@@ -161,9 +161,25 @@
     </div>
 
     <div class="content">
+        <!-- Yeşil Dalga Ana Kartı -->
         <div class="stat-card" style="border-left-color: var(--success); margin-bottom: 15px;">
             <h4>Yeşil Dalga Uyumu</h4>
             <p id="wave-status">YÜKLENİYOR...</p>
+        </div>
+
+        <!-- Yeşil Dalga Hız Göstergesi -->
+        <div class="stat-card" style="border-left-color: var(--purple); margin-bottom: 15px; background: #f9f9ff;">
+            <h4>Yeşil Dalga Hız Tavsiyesi</h4>
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <p id="target-speed" style="color: var(--primary); font-size: 32px;">50 km/s</p>
+                <div style="text-align: right;">
+                    <small style="display: block; color: #7f8c8d;">Önerilen Aralık</small>
+                    <strong style="color: var(--dark-blue);">40 - 70 km/s</strong>
+                </div>
+            </div>
+            <div style="width: 100%; background: #eee; height: 10px; border-radius: 5px; margin-top: 10px; overflow: hidden;">
+                <div id="speed-bar" style="width: 50%; background: var(--success); height: 100%; transition: 0.5s;"></div>
+            </div>
         </div>
 
         <div class="stats-grid">
@@ -201,10 +217,8 @@
 </div>
 
 <script>
-    // SUNUCU BAĞLANTISI
     const socket = io('https://okaf-hackhathon-1.onrender.com');
 
-    // Yerel Durum Yönetimi
     let state = {
         light: 'red',
         timer: 0,
@@ -213,28 +227,52 @@
         isMitmAttack: false
     };
 
-    // Saat Güncelleme
     setInterval(() => {
         const now = new Date();
         document.getElementById('system-clock').innerText = now.toLocaleTimeString('tr-TR');
     }, 1000);
 
-    // Backend'den Veri Gelince
     socket.on('traffic-update', (data) => {
         updateUI(data);
     });
 
     function updateUI(data) {
+        const targetSpeedEl = document.getElementById('target-speed');
+        const speedBar = document.getElementById('speed-bar');
+        const waveStatus = document.getElementById('wave-status');
+
         // Saldırı Kontrolü
         if (data.isMitmAttack) {
             document.body.style.border = "15px solid red";
             document.getElementById('mode-text').innerText = "🚨 KRİTİK HATA: SİBER SALDIRI!";
             document.getElementById('mode-text').style.color = "red";
             addLog("⚠️ UYARI: Paket Manipülasyonu Tespit Edildi!");
+            
+            // Hız Göstergesi Güncelleme (Saldırı Durumu)
+            targetSpeedEl.innerText = "DEVRE DIŞI";
+            targetSpeedEl.style.color = "var(--danger)";
+            speedBar.style.width = "100%";
+            speedBar.style.background = "var(--danger)";
+            waveStatus.innerText = "SENKRONİZASYON KAYBI";
+            waveStatus.className = "";
         } else {
             document.body.style.border = "none";
             document.getElementById('mode-text').innerText = "MOD: " + (data.mode || "OTOMATİK");
             document.getElementById('mode-text').style.color = "var(--dark-blue)";
+
+            // Hız Tavsiyesi Hesaplama (Yoğunluğa bağlı simülasyon)
+            let recommendedSpeed = 70 - (data.carCount / 2); 
+            if(recommendedSpeed < 40) recommendedSpeed = 40;
+            
+            targetSpeedEl.innerText = Math.round(recommendedSpeed) + " km/s";
+            targetSpeedEl.style.color = "var(--primary)";
+            
+            let barWidth = ((recommendedSpeed - 40) / (70 - 40)) * 100;
+            speedBar.style.width = barWidth + "%";
+            speedBar.style.background = "var(--success)";
+            
+            waveStatus.innerText = "AKTİF - %85 VERİMLİLİK";
+            waveStatus.className = "green-wave-active";
         }
 
         // Işıkları Güncelle
@@ -246,36 +284,29 @@
         document.getElementById('timer-display').innerText = data.timer + "s";
         document.getElementById('car-count').innerText = data.carCount + " Araç/Dk";
         document.getElementById('wait-time').innerText = (data.timer + 5) + " Saniye";
-        document.getElementById('wave-status').innerText = data.isMitmAttack ? "SENKRONİZASYON BOZULDU" : "AKTİF - %85 VERİMLİLİK";
-        document.getElementById('wave-status').className = data.isMitmAttack ? "" : "green-wave-active";
         
-        // Sıradaki Fazı Tahmin Et
         const next = { red: 'YEŞİL', green: 'SARI', yellow: 'KIRMIZI' };
         document.getElementById('next-phase').innerText = next[data.light] || "BELİRSİZ";
     }
 
-    // Log Fonksiyonu
     function addLog(msg) {
         const logPanel = document.getElementById('log-panel');
         const time = new Date().toLocaleTimeString('tr-TR');
         logPanel.innerHTML = `<div class="log-entry"><span class="log-time">[${time}]</span> ${msg}</div>` + logPanel.innerHTML;
     }
 
-    // Mod Değiştirme (Backend'e gönderir)
     function setMode(mode) {
         addLog(`İstek Gönderildi: ${mode}`);
         socket.emit('set-mode', { mode: mode }); 
     }
 
-    // Bağlantı Hataları
     socket.on('connect_error', () => {
-        addLog("Bağlantı Hatası: Sunucuya ulaşılamıyor (Render uyuyor olabilir)...");
+        addLog("Bağlantı Hatası: Sunucuya ulaşılamıyor...");
     });
 
     socket.on('connect', () => {
         addLog("✅ Sunucuya başarıyla bağlandı.");
     });
 </script>
-
 </body>
 </html>
