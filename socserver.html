@@ -415,7 +415,7 @@ socket.on('traffic-update', (s) => {
     startMitigationAnimation();
     
     // CVE 7.0 veya üzeri ise KRİTİK ALARM
-    if (cveScore >= 7.0) {
+    if (cveScore >= 5.0) {
       if (cveScore !== lastAlarmCVE) {
         lastAlarmCVE = cveScore;
         startAlarm(cveScore, attackType);
