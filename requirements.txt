@@ -1,0 +1,5 @@
+streamlit
+pandas
+python-socketio
+websocket-client
+requests
