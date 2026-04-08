@@ -1,0 +1,11 @@
+{
+  "builds": [
+    {
+      "src": "panel2.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "panel2.py" }
+  ]
+}
