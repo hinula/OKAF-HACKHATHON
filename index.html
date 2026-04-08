@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Trafik Lambası Kontrol Paneli</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- STYLE kısmın AYNEN duruyor -->
+    <!-- (Senin verdiğin CSS'e dokunmadım) -->
+</head>
+
+<body>
+<!-- HTML kısmın AYNEN -->
+<!-- SADECE JS DÜZELTİLDİ -->
+
+<script>
+let intervalId = null;
+let currentLight = 'red';
+let timeRemaining = 0;
+let isRunning = false;
+let currentMode = 'normal';
+
+const lights = {
+    red: document.getElementById('redLight'),
+    yellow: document.getElementById('yellowLight'),
+    green: document.getElementById('greenLight')
+};
+
+const durations = { red: 5, yellow: 2, green: 5 };
+
+const modes = {
+    normal: { red: 5, yellow: 2, green: 5 },
+    night: { red: 2, yellow: 1, green: 8 },
+    emergency: { red: 1, yellow: 1, green: 1 }
+};
+
+function setMode(mode) {
+    currentMode = mode;
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+
+    if (!isRunning) {
+        Object.assign(durations, modes[mode]);
+        ['red','yellow','green'].forEach(c => {
+            document.getElementById(c+'Duration').value = durations[c];
+            updateValue(c, durations[c]);
+        });
+    }
+}
+
+function updateValue(color, value) {
+    durations[color] = parseInt(value);
+    document.getElementById(color + 'Value').textContent = value + ' saniye';
+}
+
+function activateLight(color) {
+    Object.values(lights).forEach(l => l.classList.remove('active'));
+    lights[color].classList.add('active');
+    currentLight = color;
+}
+
+function updateTimer() {
+    document.getElementById('timer').textContent = timeRemaining + 's';
+    timeRemaining > 0 ? timeRemaining-- : nextLight();
+}
+
+function nextLight() {
+    const seq = ['red','yellow','green'];
+    const next = seq[(seq.indexOf(currentLight)+1)%3];
+    activateLight(next);
+    timeRemaining = durations[next];
+}
+
+function startTrafficLight() {
+    if (isRunning) return;
+    isRunning = true;
+
+    activateLight('red');
+    timeRemaining = durations.red;
+    intervalId = setInterval(updateTimer,1000);
+}
+
+function stopTrafficLight() {
+    isRunning = false;
+    clearInterval(intervalId);
+}
+
+function resetTrafficLight() {
+    stopTrafficLight();
+    Object.values(lights).forEach(l => l.classList.remove('active'));
+    document.getElementById('timer').textContent = '--';
+}
+
+['red','yellow','green'].forEach(c => updateValue(c, durations[c]));
+</script>
+</body>
+</html>
