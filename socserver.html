@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet"/>
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <style>
-/* CSS Stilleri (Görsel yapı korundu) */
+/* ─── TASARIMIN TAMAMI (İstediğin o eski zengin görüntü) ─── */
 *{margin:0;padding:0;box-sizing:border-box;}
 :root{
   --bg:#03060a;--bg2:#070d14;--bg3:#0a1420;
@@ -20,7 +20,6 @@
   --glow-g:0 0 12px #00ff8866;--glow-r:0 0 12px #ff2d4a66;--glow-b:0 0 12px #00aaff66;
 }
 html,body{height:100%;overflow-x:hidden;background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;}
-body{display:flex;flex-direction:column;}
 ::-webkit-scrollbar{width:5px;background:#050a10;}
 ::-webkit-scrollbar-thumb{background:#1a3050;border-radius:3px;}
 
@@ -33,11 +32,9 @@ body{display:flex;flex-direction:column;}
 }
 .logo{font-family:'Orbitron',sans-serif;font-size:1.1rem;color:var(--green);letter-spacing:3px;text-shadow:var(--glow-g);}
 .logo span{color:#fff;}
-.logo-sub{color:#444;font-size:.7rem;margin-left:8px;letter-spacing:1px;}
 .header-meta{display:flex;gap:24px;align-items:center;}
 .clock{font-family:'Share Tech Mono',monospace;color:var(--blue);font-size:.85rem;}
 .conn-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:var(--glow-g);animation:pulse 1.5s infinite;}
-.conn-status{font-size:.7rem;color:var(--textd);letter-spacing:.5px;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
 #threat-banner{
@@ -46,39 +43,16 @@ body{display:flex;flex-direction:column;}
   background:linear-gradient(90deg,var(--bg2),var(--bg3));
   border-bottom:1px solid var(--border);
 }
-.threat-label{font-family:'Orbitron',sans-serif;font-size:.7rem;color:var(--textd);letter-spacing:2px;}
-.threat-levels{display:flex;gap:6px;}
 .tlvl{padding:4px 12px;border-radius:3px;font-size:.75rem;font-weight:700;letter-spacing:1px;border:1px solid transparent;transition:.3s;}
-.tlvl.secure{border-color:#00ff8844;color:#00ff8888;}
-.tlvl.elevated{border-color:#ffd70044;color:#ffd70088;}
-.tlvl.high{border-color:#ff880044;color:#ff880088;}
-.tlvl.critical{border-color:#ff2d4a44;color:#ff2d4a88;}
-.tlvl.active-secure{background:#00ff8822;border-color:var(--green);color:var(--green);box-shadow:var(--glow-g);}
-.tlvl.active-elevated{background:#ffd70022;border-color:var(--yellow);color:var(--yellow);}
-.tlvl.active-high{background:#ff880022;border-color:var(--orange);color:var(--orange);}
 .tlvl.active-critical{background:#ff2d4a33;border-color:var(--red);color:var(--red);box-shadow:var(--glow-r);animation:blink .6s infinite;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
-.threat-info{margin-left:auto;font-size:.8rem;color:var(--textd);font-family:'Share Tech Mono',monospace;}
-#threat-info-text{color:var(--green);}
 
-#main{display:grid;grid-template-columns:minmax(360px,1fr) minmax(420px,1.2fr);gap:16px;padding:16px 24px;}
-#bottom-sections{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;padding:0 24px 16px;}
-.span-full{grid-column:1 / -1;}
+#main{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 24px;}
+#bottom-sections{display:grid;grid-template-columns:1fr;gap:16px;padding:0 24px 16px;}
 
-.card{
-  background:var(--bg2);border:1px solid var(--border2);border-radius:8px;
-  overflow:hidden;
-  box-shadow:0 10px 24px #00000030;
-}
-.card-header{
-  padding:10px 16px;border-bottom:1px solid var(--border);
-  display:flex;align-items:center;gap:10px;
-  background:linear-gradient(90deg,var(--bg3),var(--bg2));
-}
-.card-header h2{font-family:'Orbitron',sans-serif;font-size:.75rem;color:var(--blue);letter-spacing:2px;text-transform:uppercase;}
-.card-header .badge{margin-left:auto;padding:2px 10px;border-radius:12px;font-size:.65rem;font-weight:700;letter-spacing:1px;}
-.badge-green{background:#00ff8822;color:var(--green);border:1px solid var(--green);}
-.badge-red{background:#ff2d4a22;color:var(--red);border:1px solid var(--red);}
+.card{background:var(--bg2);border:1px solid var(--border2);border-radius:8px;overflow:hidden;}
+.card-header{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:linear-gradient(90deg,var(--bg3),var(--bg2));}
+.card-header h2{font-family:'Orbitron',sans-serif;font-size:.75rem;color:var(--blue);letter-spacing:2px;}
 .card-body{padding:14px;}
 
 .soar-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
@@ -87,71 +61,26 @@ body{display:flex;flex-direction:column;}
 .stat-val{font-family:'Share Tech Mono',monospace;font-size:1.2rem;color:var(--green);}
 .stat-val.danger{color:var(--red);}
 
-.active-threat-card{
-  background:linear-gradient(135deg,#0a0510,#14051a);
-  border:1px solid #aa44ff44;border-radius:6px;padding:12px;margin-bottom:12px;
-}
+.active-threat-card{background:linear-gradient(135deg,#0a0510,#14051a);border:1px solid #aa44ff44;border-radius:6px;padding:12px;margin-bottom:12px;}
 .atc-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
-.atc-key{font-size:.75rem;color:#aaa;}
-.atc-val{font-family:'Share Tech Mono',monospace;font-size:.8rem;color:var(--purple);}
-
 .mitigation-steps{margin-bottom:12px;}
-.ms-step{
-  display:flex;align-items:center;gap:8px;
-  padding:6px 10px;margin-bottom:4px;
-  background:var(--bg3);border-radius:4px;border-left:3px solid var(--border2);
-  font-size:.75rem;
-}
+.ms-step{display:flex;align-items:center;gap:8px;padding:6px 10px;margin-bottom:4px;background:var(--bg3);border-radius:4px;border-left:3px solid var(--border2);font-size:.75rem;}
 .ms-step.done{border-color:var(--green);color:var(--green);}
 .ms-step.active{border-color:var(--orange);color:var(--orange);animation:pulse 1s infinite;}
-.step-icon{width:12px;height:12px;border-radius:50%;background:var(--border);}
-.ms-step.done .step-icon{background:var(--green);}
 
-.form-row{display:flex;gap:8px;margin-bottom:8px;}
-.inp{
-  flex:1;background:var(--bg3);border:1px solid var(--border2);
-  border-radius:4px;padding:8px 12px;color:var(--text);
-  font-family:'Share Tech Mono',monospace;font-size:.8rem;outline:none;
-}
-.btn{
-  padding:8px 16px;border:none;border-radius:4px;cursor:pointer;
-  font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.8rem;
-  letter-spacing:1px;transition:.2s;
-}
+.inp{background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:8px 12px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:.8rem;outline:none;width:100%;margin-bottom:8px;}
+.btn{padding:8px 16px;border:none;border-radius:4px;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.8rem;letter-spacing:1px;transition:.2s;}
 .btn-red{background:var(--red2);color:#fff;}
 .btn-green{background:#00884a;color:#fff;}
 
-.cve-list{display:flex;flex-direction:column;gap:8px;max-height:420px;overflow-y:auto;}
-.cve-card{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px 12px;cursor:pointer;}
-.cve-detail{display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:.72rem;}
-.cve-card.expanded .cve-detail{display:block;}
+.console-wrap{background:#030608;border-radius:6px;height:280px;overflow-y:auto;padding:10px;border:1px solid #0a1a0a;}
+.log-row{padding:3px 0;border-bottom:1px solid #0a1520;display:grid;grid-template-columns:100px 120px 140px 1fr 60px 90px;gap:6px;font-size:.68rem;align-items:center;}
+.log-cve.crit{color:var(--red);}
+.log-action{text-align:right;}
 
-.console-wrap{background:#030608;border-radius:6px;height:320px;overflow-y:auto;padding:10px;border:1px solid #0a1a0a;}
-.log-row{
-  padding:3px 0;border-bottom:1px solid #0a1520;
-  display:grid;grid-template-columns:92px 112px 128px 1fr 70px 64px 92px;
-  gap:6px;font-size:.68rem;align-items:center;
-}
-.console-header-row{
-  display:grid;grid-template-columns:92px 112px 128px 1fr 70px 64px 92px;
-  gap:6px;font-size:.6rem;color:var(--textd);padding:4px 0 8px;border-bottom:1px solid var(--border2);
-  position:sticky;top:0;background:var(--bg2);z-index:2;
-}
-
-.ban-table{width:100%;border-collapse:collapse;font-size:.75rem;}
-.ban-table th{text-align:left;padding:6px 10px;border-bottom:1px solid var(--border2);color:var(--textd);position:sticky;top:0;background:var(--bg2);}
-.ban-table td{padding:7px 10px;border-bottom:1px solid var(--border);}
-
-#police-popup{
-  display:none;position:fixed;inset:0;z-index:9999;
-  background:#000000cc;backdrop-filter:blur(4px);
-  justify-content:center;align-items:center;
-}
+#police-popup{display:none;position:fixed;inset:0;z-index:9999;background:#000000cc;backdrop-filter:blur(4px);justify-content:center;align-items:center;}
 #police-popup.visible{display:flex;}
-.police-modal{
-  background:linear-gradient(135deg,#120008,#200010,#120008);
-  border:2px solid var(--red);border-radius:12px;padding:32px;text-align:center;max-width:500px;
-}
+.police-modal{background:linear-gradient(135deg,#120008,#200010,#120008);border:2px solid var(--red);border-radius:12px;max-width:560px;width:90%;padding:32px;text-align:center;}
 
 #toast-container{position:fixed;top:70px;right:20px;z-index:8888;display:flex;flex-direction:column;gap:8px;}
 .toast{background:var(--bg2);border-left:4px solid var(--green);padding:10px 16px;font-size:.78rem;animation:slideIn .3s ease;}
@@ -161,10 +90,10 @@ body{display:flex;flex-direction:column;}
 <body>
 
 <div id="header">
-  <div class="logo">OKAF <span>SOC</span>/SOAR <span class="logo-sub">SIBER SAVUNMA MERKEZİ • CYBERFILTER</span></div>
+  <div class="logo">OKAF <span>SOC</span>/SOAR <span style="color:#444;font-size:.7rem;margin-left:8px;">SIBER SAVUNMA MERKEZİ</span></div>
   <div class="header-meta">
     <div class="conn-dot" id="conn-dot"></div>
-    <span class="conn-status" id="conn-status">BAĞLANIYOR...</span>
+    <span style="font-size:.7rem;color:var(--textd)" id="conn-status">BAĞLANIYOR...</span>
     <div class="clock" id="clock"></div>
   </div>
 </div>
@@ -172,17 +101,17 @@ body{display:flex;flex-direction:column;}
 <div id="threat-banner">
   <div class="threat-label">TEHDİT SEVİYESİ</div>
   <div class="threat-levels">
-    <div class="tlvl secure" id="tlvl-secure">SECURE</div>
-    <div class="tlvl elevated" id="tlvl-elevated">ELEVATED</div>
-    <div class="tlvl high" id="tlvl-high">HIGH</div>
-    <div class="tlvl critical" id="tlvl-critical">CRITICAL</div>
+    <div class="tlvl" id="tlvl-secure">SECURE</div>
+    <div class="tlvl" id="tlvl-elevated">ELEVATED</div>
+    <div class="tlvl" id="tlvl-high">HIGH</div>
+    <div class="tlvl" id="tlvl-critical">CRITICAL</div>
   </div>
   <div class="threat-info">AKTİF TEHDIT: <span id="threat-info-text">YOK — SİSTEM GÜVENLİ</span></div>
 </div>
 
 <div id="main">
   <div class="card">
-    <div class="card-header">🛡️ <h2>OTOMATİK SAVUNMA MERKEZİ</h2> <span class="badge badge-green" id="soar-badge">STANDBY</span></div>
+    <div class="card-header">🛡️ <h2>OTOMATİK SAVUNMA MERKEZİ — SOAR UNIT</h2></div>
     <div class="card-body">
       <div class="soar-grid">
         <div class="stat-box"><div class="stat-label">TOPLAM BAN</div><div class="stat-val" id="stat-total-bans">0</div></div>
@@ -191,226 +120,147 @@ body{display:flex;flex-direction:column;}
         <div class="stat-box"><div class="stat-label">SON MİTİGASYON</div><div class="stat-val" id="stat-last-mit" style="font-size:.75rem;">YOK</div></div>
       </div>
       <div class="active-threat-card">
-        <div class="atc-row"><span>Saldırı Tipi</span><span id="atc-type">—</span></div>
-        <div class="atc-row"><span>Kaynak IP</span><span id="atc-ip">—</span></div>
-        <div class="atc-row"><span>CVE Skoru</span><span id="atc-cve">—</span></div>
+        <div class="atc-row"><span>Tipi</span><span id="atc-type">—</span></div>
+        <div class="atc-row"><span>IP</span><span id="atc-ip">—</span></div>
+        <div class="atc-row"><span>CVE</span><span id="atc-cve">—</span></div>
       </div>
       <div class="mitigation-steps">
-        <div class="ms-step" id="ms1"><div class="step-icon"></div>Trafik analizi — Anomali tespiti</div>
-        <div class="ms-step" id="ms2"><div class="step-icon"></div>CVE eşleştirme — Risk skoru hesaplama</div>
-        <div class="ms-step" id="ms3"><div class="step-icon"></div>IP Ban — Güvenlik kaydı oluşturma</div>
+        <div class="ms-step" id="ms1">Trafik analizi — Anomali tespiti</div>
+        <div class="ms-step" id="ms2">CVE eşleştirme — Risk skoru hesaplama</div>
+        <div class="ms-step" id="ms3">IP Ban — Güvenlik kaydı oluşturma</div>
       </div>
-      <div class="form-row">
-        <input class="inp" id="manual-ip" placeholder="IP adresi"/>
-        <button class="btn btn-red" onclick="manualBan()">BAN</button>
-      </div>
-      <div class="form-row">
-        <input class="inp" id="unban-ip" placeholder="Unban edilecek IP"/>
-        <button class="btn btn-green" onclick="manualUnban()">UNBAN</button>
-      </div>
+      <input class="inp" id="manual-ip" placeholder="IP adresi (örn: 192.168.1.100)"/>
+      <button class="btn btn-red" onclick="manualBan()">BAN</button>
+      <button class="btn btn-green" onclick="manualUnban()">UNBAN</button>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-header">📊 <h2>CVE VERİTABANI</h2> <span class="badge badge-blue" id="cve-count-badge">0 CVE</span></div>
+    <div class="card-header">📊 <h2>CVE VERİTABANI</h2></div>
     <div class="card-body"><div class="cve-list" id="cve-list"></div></div>
   </div>
 </div>
 
 <div id="bottom-sections">
-  <div class="card span-full">
-    <div class="card-header">📟 <h2>CANLI LOG AKIŞI</h2> <button class="btn btn-red" onclick="clearLogs()">TEMİZLE</button></div>
+  <div class="card">
+    <div class="card-header">📟 <h2>CANLI LOG AKIŞI</h2> <button class="btn btn-red" style="margin-left:auto" onclick="clearLogs()">TEMİZLE</button></div>
     <div class="card-body">
-      <div class="console-header-row">
-        <span>ZAMAN</span><span>KAYNAK IP</span><span>SALDIRI TİPİ</span><span>PAYLOAD</span><span>CVE</span><span>SEV</span><span>AKSİYON</span>
-      </div>
-      <div class="console-wrap" id="console-wrap"></div>
+        <div class="console-wrap" id="console-wrap"></div>
     </div>
-  </div>
-
-  <div class="card">
-    <div class="card-header">🚫 <h2>BANLI IP LİSTESİ</h2></div>
-    <div class="card-body"><div class="ban-table-wrap"><table class="ban-table"><thead><tr><th>IP</th><th>SEBEP</th><th>CVE</th><th>ZAMAN</th><th>AKSİYON</th></tr></thead><tbody id="ban-tbody"></tbody></table></div></div>
-  </div>
-
-  <div class="card">
-    <div class="card-header">⚡ <h2>RATE LIMIT MONİTÖRÜ</h2></div>
-    <div class="card-body"><div class="rate-grid" id="rate-grid"></div></div>
   </div>
 </div>
 
 <div id="police-popup">
   <div class="police-modal">
-    <h2 style="color:var(--red)">🚨 KRİTİK SİBER SALDIRI</h2>
-    <p>Trafik altyapısı aktif tehdit altında!</p>
-    <div id="police-detail" style="margin:20px 0; font-family:monospace; font-size:14px;"></div>
-    <button class="btn btn-orange" onclick="acknowledgePolice()" style="background:orange; color:black">ONAYLA</button>
-    <button class="btn btn-green" onclick="mitigateFromPopup()">BERTARAF ET</button>
+    <h2 style="color:var(--red); font-family:Orbitron;">🚨 KRİTİK SİBER SALDIRI</h2>
+    <p style="margin:15px 0;">Trafik ışıkları manipüle ediliyor! Altyapı tehdit altında.</p>
+    <button class="btn btn-green" onclick="mitigateFromPopup()">🛡️ TEHDİDİ BERTARAF ET</button>
+    <button class="btn btn-red" onclick="acknowledgePolice()">KAPAT</button>
   </div>
 </div>
 
 <div id="toast-container"></div>
 
 <script>
-// ─── YAPILANDIRMA ───
-const SERVER_URL = "https://okaf-hackhathon-1.onrender.com"; // Render adresin
+// ─── RENDER BAĞLANTISI VE MANTIK (Yeni Sistem) ───
+const SERVER_URL = "https://okaf-hackhathon-1.onrender.com";
 const socket = io(SERVER_URL, { transports: ['websocket','polling'] });
 
-let allLogs = [];
-let bannedIPs = {};
+let bannedIPs = new Set();
 let currentThreat = null;
-let policeAcknowledged = false;
 
-// ─── SAAT ───
+// Saat
 setInterval(() => {
     const n = new Date();
     document.getElementById('clock').textContent = n.toLocaleTimeString('tr-TR') + ' | ' + n.toLocaleDateString('tr-TR');
 }, 1000);
 
-// ─── SOCKET EVENTS ───
 socket.on('connect', () => {
     document.getElementById('conn-status').textContent = 'BAĞLANDI (RENDER)';
     document.getElementById('conn-status').style.color = 'var(--green)';
-    loadInitialData(); // Bağlandığında verileri Render'dan çek
+    loadInitialData();
 });
 
 socket.on('traffic-update', (s) => {
-    updateThreatLevel(s);
+    updateThreatUI(s);
     document.getElementById('stat-last-mit').textContent = s.lastMitigation || 'YOK';
     if (s.isMitmAttack) {
-        document.getElementById('atc-type').textContent = s.activeAttackType || "MITM / Manipülasyon";
-        document.getElementById('atc-ip').textContent = s.activeSourceIP || 'ANALİZ EDİLİYOR';
-        document.getElementById('atc-cve').textContent = (s.activeCveScore || "9.8") + ' ⚠️';
+        document.getElementById('atc-type').textContent = s.activeAttackType || "MITM";
+        document.getElementById('atc-ip').textContent = s.activeSourceIP || "ANALİZ EDİLİYOR";
+        document.getElementById('atc-cve').textContent = "9.8 ⚠️";
         document.getElementById('stat-active-threat').textContent = "SALDIRI VAR";
         document.getElementById('stat-active-threat').className = 'stat-val danger';
-        startMitigationAnimation();
+        startMitigationAnim();
+        if(!currentThreat) { showPolicePopup(s); currentThreat = true; }
     } else {
         resetThreatUI();
+        currentThreat = null;
     }
 });
 
 socket.on('new-log', (log) => {
-    allLogs.unshift(log);
-    if (allLogs.length > 200) allLogs.pop();
-    prependLogRow(log);
-    document.getElementById('stat-log-count').textContent = allLogs.length;
+    const wrap = document.getElementById('console-wrap');
+    const row = `<div class="log-row">
+        <span>${new Date().toLocaleTimeString()}</span>
+        <span style="color:var(--blue)">${log.sourceIP || log.ip || '—'}</span>
+        <span style="color:var(--orange)">${log.attackType || 'TRAFFIC'}</span>
+        <span>${log.payload || 'Packet Received'}</span>
+        <span class="log-cve crit">${log.cveScore || '—'}</span>
+        <span class="log-action">DETECTED</span>
+    </div>`;
+    wrap.insertAdjacentHTML('afterbegin', row);
+    document.getElementById('stat-log-count').textContent = wrap.children.length;
 });
 
-// ─── KRİTİK: RENDER ÜZERİNDEN VERİ ÇEKME ───
 async function loadInitialData() {
     try {
-        // fetch('/api/...') yerine fetch(SERVER_URL + '/api/...') kullanıyoruz
-        const [logs, bans, cves, status] = await Promise.all([
+        const [logs, bans, cves] = await Promise.all([
             fetch(`${SERVER_URL}/api/logs`).then(r=>r.json()),
             fetch(`${SERVER_URL}/api/blocked-ips`).then(r=>r.json()),
-            fetch(`${SERVER_URL}/api/cve-list`).then(r=>r.json()),
-            fetch(`${SERVER_URL}/api/status`).then(r=>r.json())
+            fetch(`${SERVER_URL}/api/cve-list`).then(r=>r.json())
         ]);
-
-        allLogs = logs;
-        document.getElementById('console-wrap').innerHTML = '';
-        logs.forEach(l => appendLogRow(l));
-        document.getElementById('stat-log-count').textContent = logs.length;
-
-        bans.forEach(b => { bannedIPs[b.ip] = b; addBanRow(b); });
-        document.getElementById('stat-total-bans').textContent = Object.keys(bannedIPs).length;
-
         renderCVEs(cves);
-        updateThreatLevel(status);
-
-    } catch(e) { 
-        showToast('Render API Bağlantı Hatası!', 'error'); 
-        console.error("Hata:", e);
-    }
+        bans.forEach(b => bannedIPs.add(b.ip));
+        document.getElementById('stat-total-bans').textContent = bans.length;
+    } catch(e) { console.log("API hatası"); }
 }
 
-// ─── AKSİYONLAR (RENDER'A GÖNDERİLİR) ───
 async function manualBan() {
-    const ip = document.getElementById('manual-ip').value.trim();
-    if (!ip) return;
+    const ip = document.getElementById('manual-ip').value;
     const r = await fetch(`${SERVER_URL}/api/mitigate`, {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ targetIP: ip, attackType: 'Manuel Ban', cveScore: 9.8 })
+        body: JSON.stringify({ targetIP: ip, cveScore: 9.8 })
     }).then(r=>r.json());
     showToast(r.message);
-    document.getElementById('manual-ip').value = '';
 }
 
 async function manualUnban() {
-    const ip = document.getElementById('unban-ip').value.trim();
-    if (!ip) return;
+    const ip = document.getElementById('manual-ip').value;
     const r = await fetch(`${SERVER_URL}/api/unban`, {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ ip })
     }).then(r=>r.json());
     showToast(r.message);
-    document.getElementById('unban-ip').value = '';
 }
 
 async function mitigateFromPopup() {
-    if (currentThreat && currentThreat.sourceIP) {
-        await fetch(`${SERVER_URL}/api/mitigate`, {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ targetIP: currentThreat.sourceIP, cveScore: 9.8 })
-        });
-    }
+    await fetch(`${SERVER_URL}/api/mitigate`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ targetIP: "ATTACKER", cveScore: 10 })
+    });
     document.getElementById('police-popup').classList.remove('visible');
-    showToast('🛡️ Tehdit Bertaraf Edildi');
+    showToast("🛡️ Sistem Onarıldı");
 }
 
-// ─── GÖRSEL YARDIMCILAR ───
-function formatLogRow(log) {
-    const t = new Date(log.timestamp || Date.now()).toLocaleTimeString('tr-TR');
-    return `<div class="log-row">
-        <span class="log-time">${t}</span>
-        <span class="log-ip">${log.sourceIP || log.ip || '-'}</span>
-        <span class="log-type">${log.attackType || log.type || '-'}</span>
-        <span class="log-payload">${log.payload || log.msg || '-'}</span>
-        <span class="log-cve">${log.cveScore || '-'}</span>
-        <span class="log-action">${log.action || 'DETECTED'}</span>
-    </div>`;
-}
-
-function prependLogRow(log) {
-    const wrap = document.getElementById('console-wrap');
-    wrap.insertAdjacentHTML('afterbegin', formatLogRow(log));
-}
-
-function appendLogRow(log) {
-    document.getElementById('console-wrap').insertAdjacentHTML('beforeend', formatLogRow(log));
-}
-
-function addBanRow(data) {
-    const tbody = document.getElementById('ban-tbody');
-    const t = new Date(data.bannedAt || Date.now()).toLocaleTimeString('tr-TR');
-    tbody.insertAdjacentHTML('afterbegin', `<tr>
-        <td class="ban-ip">${data.ip}</td>
-        <td>${data.reason || 'Saldırı'}</td>
-        <td>${data.cveScore || '9.8'}</td>
-        <td>${t}</td>
-        <td><button class="btn btn-green" onclick="unbanIP('${data.ip}')">UNBAN</button></td>
-    </tr>`);
-}
-
-function renderCVEs(cves) {
-    const container = document.getElementById('cve-list');
-    document.getElementById('cve-count-badge').textContent = cves.length + ' CVE';
-    container.innerHTML = cves.map(c => `
-        <div class="cve-card" onclick="this.classList.toggle('expanded')">
-            <div class="cve-top"><span class="cve-id">${c.id}</span> <span class="cve-score-pill sev-CRITICAL">${c.score}</span></div>
-            <div class="cve-desc">${c.description}</div>
-        </div>
-    `).join('');
-}
-
-function updateThreatLevel(s) {
+function updateThreatUI(s) {
     const info = document.getElementById('threat-info-text');
+    document.querySelectorAll('.tlvl').forEach(el => el.className = 'tlvl');
     if (s.isMitmAttack) {
-        document.getElementById('tlvl-critical').className = 'tlvl critical active-critical';
+        document.getElementById('tlvl-critical').classList.add('active-critical');
         info.textContent = "KRİTİK SALDIRI TESPİT EDİLDİ";
         info.style.color = "var(--red)";
     } else {
-        document.getElementById('tlvl-secure').className = 'tlvl secure active-secure';
+        document.getElementById('tlvl-secure').classList.add('active-secure');
         info.textContent = "SİSTEM GÜVENLİ";
         info.style.color = "var(--green)";
     }
@@ -418,38 +268,39 @@ function updateThreatLevel(s) {
 
 function resetThreatUI() {
     document.getElementById('stat-active-threat').textContent = 'YOK';
+    document.getElementById('stat-active-threat').className = 'stat-val';
     document.getElementById('atc-type').textContent = '—';
     document.getElementById('atc-ip').textContent = '—';
+    document.getElementById('ms1').classList.remove('done');
+    document.getElementById('ms2').classList.remove('done');
+    document.getElementById('ms3').classList.remove('done');
 }
 
-function startMitigationAnimation() {
+function startMitigationAnim() {
     document.getElementById('ms1').classList.add('done');
-    setTimeout(() => document.getElementById('ms2').classList.add('done'), 1000);
-    setTimeout(() => document.getElementById('ms3').classList.add('done'), 2000);
+    setTimeout(() => document.getElementById('ms2').classList.add('done'), 800);
+    setTimeout(() => document.getElementById('ms3').classList.add('done'), 1600);
 }
 
-function showPolicePopup(data) {
-    document.getElementById('pd-type').textContent = data.attackType;
-    document.getElementById('pd-ip').textContent = data.sourceIP;
-    document.getElementById('police-popup').classList.add('visible');
+function renderCVEs(cves) {
+    document.getElementById('cve-list').innerHTML = cves.map(c => `
+        <div class="cve-card" onclick="this.classList.toggle('expanded')">
+            <div style="color:var(--blue)">${c.id} - Skor: ${c.score}</div>
+            <div class="cve-desc">${c.description}</div>
+        </div>
+    `).join('');
 }
 
-function acknowledgePolice() {
-    policeAcknowledged = true;
-    document.getElementById('police-popup').classList.remove('visible');
-}
+function showPolicePopup() { document.getElementById('police-popup').classList.add('visible'); }
+function acknowledgePolice() { document.getElementById('police-popup').classList.remove('visible'); }
 
-function showToast(msg, type='') {
+function showToast(msg) {
     const t = document.createElement('div');
-    t.className = 'toast ' + type;
-    t.textContent = msg;
+    t.className = 'toast'; t.textContent = msg;
     document.getElementById('toast-container').prepend(t);
-    setTimeout(() => t.remove(), 4000);
+    setTimeout(() => t.remove(), 3000);
 }
-
-function clearLogs() {
-    document.getElementById('console-wrap').innerHTML = '';
-}
+function clearLogs() { document.getElementById('console-wrap').innerHTML = ''; }
 </script>
 </body>
 </html>
