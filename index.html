@@ -205,9 +205,15 @@
 
 <script>
  
-    const API_URL = "http://localhost:3000/api"; 
-    let currentMode = "AUTO";
-    let socket = null;
+    const socket = io('http://localhost:3000');
+
+socket.on('traffic-update', (data) => {
+    if (data.isMitmAttack) {
+        // Belediye panelinde kırmızı alarm göster
+        document.body.style.border = "10px solid red";
+        document.getElementById('mode-text').innerText = "KRİTİK HATA: SİBER SALDIRI!";
+    } else {
+        document.body.style.border = "none";
 
   
     let state = {
