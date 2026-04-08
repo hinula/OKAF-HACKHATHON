@@ -231,13 +231,7 @@ socket.on('traffic-update', (data) => {
   
     async function updateSystem() {
         try {
-            if(state.timer > 0) {
-                state.timer--;
-            } else {
-                nextPhase();
-            }
             
-            renderUI();
         } catch (error) {
             addLog("Bağlantı Hatası: Sunucuya ulaşılamıyor!");
         }
@@ -279,11 +273,13 @@ socket.on('traffic-update', (data) => {
     function setMode(mode) {
         currentMode = mode;
         addLog(`Sistem modu değiştirildi: ${mode}`);
-        // Sunucuya mod değişikliğini bildir
-        // fetch(`${API_URL}/set-mode`, { method: 'POST', body: JSON.stringify({mode}) });
-    }
 
-    // Her saniye güncelle
+    }
+        function updateUI(data) {
+    state = data;
+    renderUI();
+}
+
     setInterval(updateSystem, 1000);
 </script>
 
