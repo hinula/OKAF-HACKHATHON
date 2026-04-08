@@ -2,54 +2,114 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
+const net = require('net');
+const modbus = require('jsmodbus');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 const server = http.createServer(app);
-const io = new Server(server, {
-    cors: { origin: "*" }
-});
+const io = new Server(server, { cors: { origin: "*" } });
+
+// --- GÜVENLİK VERİLERİ ---
+const blacklistedIPs = new Set();
+const requestCounts = {};
+const THRESHOLD = 20;
 
 // --- SİSTEM DURUMU ---
 let trafficStatus = {
     light: "red",
     timer: 15,
     carCount: 45,
-    isMitmAttack: false, // MITM Saldırı Bayrağı
-    networkSecurity: "Safe"
+    mode: "AUTO",
+    isMitmAttack: false,
+    networkSecurity: "Safe",
+    lastMitigation: "None"
 };
 
-// --- API ENDPOINTLERİ ---
+// --- MODBUS YAPILANDIRMASI ---
+const holdingRegisters = Buffer.alloc(100);
+const netServer = new net.Server();
+const modbusServer = new modbus.server.TCP(netServer);
 
-// 1. Genel Durum Sorgulama (Belediye Paneli İçin)
-app.get('/api/status', (req, res) => {
-    res.json(trafficStatus);
-});
+function getLightCode(light) {
+    if (trafficStatus.isMitmAttack) return 99;
+    const codes = { red: 0, yellow: 1, green: 2, glitch: 99 };
+    return codes[light] || 0;
+}
 
-// 2. Saldırı Simülasyonu (Hackathon Gösterisi İçin)
-// SOC panelinden bu endpoint'e istek atarak belediye panelini bozacağız
-app.post('/api/attack', (req, res) => {
-    const { active } = req.body;
-    trafficStatus.isMitmAttack = active;
-    
-    if (active) {
-        trafficStatus.networkSecurity = "Compromised (MITM Detected)";
-        console.log("⚠️ UYARI: Paket manipülasyonu başladı!");
-    } else {
-        trafficStatus.networkSecurity = "Safe";
-        console.log("✅ Sistem normale döndü.");
+// Modbus Register Güncelleme Döngüsü
+setInterval(() => {
+    try {
+        holdingRegisters.writeUInt16BE(getLightCode(trafficStatus.light), 0); // Register 0: Işık
+        holdingRegisters.writeUInt16BE(trafficStatus.timer, 2);               // Register 1: Timer
+        holdingRegisters.writeUInt16BE(trafficStatus.carCount, 4);           // Register 2: Araç
+    } catch (err) {
+        console.error("Modbus Register Yazma Hatası");
+    }
+}, 1000);
+
+// --- GÜVENLİK KALKANI (MIDDLEWARE) ---
+const securityShield = (req, res, next) => {
+    const clientIP = req.ip || req.connection.remoteAddress;
+
+    // 1. Kontrol: IP Banlı mı?
+    if (blacklistedIPs.has(clientIP)) {
+        return res.status(403).json({
+            status: "BLOCKED",
+            message: "Güvenlik protokolleri gereği erişiminiz engellendi.",
+            reason: "CVE-Based Auto-Mitigation"
+        });
     }
 
-    io.emit('security-alert', trafficStatus); // SOC paneline anlık uyarı
-    res.json({ status: "ok", attackActive: active });
+    // 2. Kontrol: Rate Limiting (Basit Brute Force Koruması)
+    requestCounts[clientIP] = (requestCounts[clientIP] || 0) + 1;
+    if (requestCounts[clientIP] > THRESHOLD) {
+        blacklistedIPs.add(clientIP);
+        console.log(`[SAVUNMA] ${clientIP} çok fazla istek attığı için banlandı.`);
+    }
+
+    next();
+};
+
+app.use(securityShield);
+
+// --- API ENDPOINTLERI ---
+
+// SOC'dan gelen müdahale isteği
+app.post('/api/mitigate', (req, res) => {
+    const { targetIP, attackType, cveScore } = req.body;
+
+    if (parseFloat(cveScore) >= 7.0) {
+        blacklistedIPs.add(targetIP);
+        trafficStatus.lastMitigation = `IP ${targetIP} BANNED (CVE: ${cveScore})`;
+        trafficStatus.isMitmAttack = false; // Saldırıyı durdur
+        trafficStatus.networkSecurity = "Safe (Threat Neutralized)";
+        
+        console.log(`[SAVUNMA] ${targetIP} OTOMATİK banlandı. Tehdit: ${attackType}`);
+
+        return res.json({ 
+            success: true, 
+            action: "AUTO_BAN", 
+            message: `Kritik tehdit (${cveScore}) bertaraf edildi.` 
+        });
+    }
+
+    res.json({ success: true, action: "LOGGED", message: "Düşük risk kaydedildi." });
+});
+
+// Manuel Saldırı Simülasyonu (Test için)
+app.post('/api/attack', (req, res) => {
+    trafficStatus.isMitmAttack = req.body.active;
+    trafficStatus.networkSecurity = req.body.active ? "Under Attack" : "Safe";
+    io.emit('traffic-update', trafficStatus);
+    res.json({ status: "OK" });
 });
 
 // --- TRAFİK DÖNGÜSÜ ---
 setInterval(() => {
     if (!trafficStatus.isMitmAttack) {
-        // Normal Çalışma Mantığı
         if (trafficStatus.timer > 0) {
             trafficStatus.timer--;
         } else {
@@ -58,22 +118,23 @@ setInterval(() => {
             trafficStatus.timer = trafficStatus.light === "yellow" ? 3 : 15;
         }
     } else {
-        // SALDIRI ANI: Veriler saçmalıyor
+        trafficStatus.light = "glitch";
         trafficStatus.timer = Math.floor(Math.random() * 99);
-        trafficStatus.light = "glitch"; // Frontend'de tüm ışıkların yanıp sönmesini sağlar
     }
-
-    // Soket üzerinden tüm bağlı panelleri (Belediye & SOC) güncelle
     io.emit('traffic-update', trafficStatus);
 }, 1000);
 
-const PORT = 3000;
-server.listen(PORT, () => {
-    console.log(`
-    🚦 AKILLI TRAFİK SUNUCUSU BAŞLATILDI
-    ------------------------------------
-    Sunucu Adresi: http://localhost:${PORT}
-    Saldırı Testi: POST http://localhost:${PORT}/api/attack
-    ------------------------------------
-    `);
+// --- SUNUCULARI BAŞLAT ---
+const API_PORT = 3000;
+server.listen(API_PORT, () => {
+    console.log(`🚀 API ve Webhook Sunucusu: http://localhost:${API_PORT}`);
+});
+
+const MODBUS_PORT = 502; // Hata alırsan 5020 yap
+netServer.listen(MODBUS_PORT, () => {
+    console.log(`📟 Modbus TCP Sunucusu: ${MODBUS_PORT} portunda aktif.`);
+});
+
+modbusServer.on('postReadHoldingRegisters', (request, cb) => {
+    cb(holdingRegisters);
 });
