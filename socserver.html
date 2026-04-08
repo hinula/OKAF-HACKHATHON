@@ -252,260 +252,204 @@ body{display:flex;flex-direction:column;}
 <div id="toast-container"></div>
 
 <script>
-// --- KONFİGÜRASYON ---
-const SERVER_URL = "https://okaf-hackhathon-1.onrender.com";
-const socket = io(SERVER_URL, { transports: ['websocket','polling'], reconnection: true });
+// ─── YAPILANDIRMA ───
+const SERVER_URL = "https://okaf-hackhathon-1.onrender.com"; // Render adresin
+const socket = io(SERVER_URL, { transports: ['websocket','polling'] });
 
 let allLogs = [];
 let bannedIPs = {};
 let currentThreat = null;
 let policeAcknowledged = false;
 
-// --- CLOCK ---
+// ─── SAAT ───
 setInterval(() => {
-  const n = new Date();
-  document.getElementById('clock').textContent = n.toLocaleTimeString('tr-TR') + ' | ' + n.toLocaleDateString('tr-TR');
+    const n = new Date();
+    document.getElementById('clock').textContent = n.toLocaleTimeString('tr-TR') + ' | ' + n.toLocaleDateString('tr-TR');
 }, 1000);
 
-// --- SOCKET BAĞLANTISI ---
+// ─── SOCKET EVENTS ───
 socket.on('connect', () => {
-  document.getElementById('conn-status').textContent = 'BAĞLANDI (RENDER)';
-  document.getElementById('conn-status').style.color = 'var(--green)';
-  document.getElementById('conn-dot').style.background = 'var(--green)';
-  loadInitialData();
-});
-
-socket.on('disconnect', () => {
-  document.getElementById('conn-status').textContent = 'BAĞLANTI KESİLDİ';
-  document.getElementById('conn-status').style.color = 'var(--red)';
-  document.getElementById('conn-dot').style.background = 'var(--red)';
+    document.getElementById('conn-status').textContent = 'BAĞLANDI (RENDER)';
+    document.getElementById('conn-status').style.color = 'var(--green)';
+    loadInitialData(); // Bağlandığında verileri Render'dan çek
 });
 
 socket.on('traffic-update', (s) => {
-  updateThreatLevel(s);
-  document.getElementById('stat-last-mit').textContent = s.lastMitigation || 'YOK';
-  if (s.isMitmAttack) {
-    document.getElementById('atc-type').textContent = s.activeAttackType || "MITM";
-    document.getElementById('atc-ip').textContent = s.activeSourceIP || "ANALİZ EDİLİYOR";
-    document.getElementById('atc-cve').textContent = (s.activeCveScore || "9.8") + " ⚠️";
-    document.getElementById('stat-active-threat').textContent = "SALDIRI VAR";
-    document.getElementById('stat-active-threat').className = 'stat-val danger';
-    startMitigationAnimation();
-  } else {
-    resetThreatUI();
-  }
+    updateThreatLevel(s);
+    document.getElementById('stat-last-mit').textContent = s.lastMitigation || 'YOK';
+    if (s.isMitmAttack) {
+        document.getElementById('atc-type').textContent = s.activeAttackType || "MITM / Manipülasyon";
+        document.getElementById('atc-ip').textContent = s.activeSourceIP || 'ANALİZ EDİLİYOR';
+        document.getElementById('atc-cve').textContent = (s.activeCveScore || "9.8") + ' ⚠️';
+        document.getElementById('stat-active-threat').textContent = "SALDIRI VAR";
+        document.getElementById('stat-active-threat').className = 'stat-val danger';
+        startMitigationAnimation();
+    } else {
+        resetThreatUI();
+    }
 });
 
 socket.on('new-log', (log) => {
-  const normalized = normalizeLog(log);
-  allLogs.unshift(normalized);
-  if (allLogs.length > 200) allLogs.pop();
-  prependLogRow(normalized);
-  document.getElementById('stat-log-count').textContent = allLogs.length;
-});
-
-socket.on('critical-alert', (data) => {
-  currentThreat = data;
-  if (!policeAcknowledged) showPolicePopup(data);
-  showToast(`🚨 KRİTİK SALDIRI: ${data.attackType}`, 'error');
-});
-
-socket.on('ip-banned', (data) => {
-  bannedIPs[data.ip] = data;
-  addBanRow(data);
-  document.getElementById('stat-total-bans').textContent = Object.keys(bannedIPs).length;
-  showToast(`🚫 IP BANLANDI: ${data.ip}`, 'warn');
-});
-
-socket.on('ip-unbanned', (data) => {
-  delete bannedIPs[data.ip];
-  const row = document.getElementById('ban-row-' + data.ip.replace(/[.:]/g,'_'));
-  if (row) row.remove();
-  document.getElementById('stat-total-bans').textContent = Object.keys(bannedIPs).length;
-  showToast(`✅ BAN KALDIRILDI: ${data.ip}`, '');
-});
-
-// --- VERİ YÜKLEME ---
-async function loadInitialData() {
-  try {
-    const [logs, bans, cves, status] = await Promise.all([
-      fetch(`${SERVER_URL}/api/logs`).then(r=>r.json()),
-      fetch(`${SERVER_URL}/api/blocked-ips`).then(r=>r.json()),
-      fetch(`${SERVER_URL}/api/cve-list`).then(r=>r.json()),
-      fetch(`${SERVER_URL}/api/status`).then(r=>r.json())
-    ]);
-
-    allLogs = logs.map(normalizeLog);
-    const wrap = document.getElementById('console-wrap');
-    wrap.innerHTML = '';
-    allLogs.forEach(l => appendLogRow(l));
+    allLogs.unshift(log);
+    if (allLogs.length > 200) allLogs.pop();
+    prependLogRow(log);
     document.getElementById('stat-log-count').textContent = allLogs.length;
+});
 
-    bans.forEach(b => { bannedIPs[b.ip] = b; addBanRow(b); });
-    document.getElementById('stat-total-bans').textContent = bans.length;
+// ─── KRİTİK: RENDER ÜZERİNDEN VERİ ÇEKME ───
+async function loadInitialData() {
+    try {
+        // fetch('/api/...') yerine fetch(SERVER_URL + '/api/...') kullanıyoruz
+        const [logs, bans, cves, status] = await Promise.all([
+            fetch(`${SERVER_URL}/api/logs`).then(r=>r.json()),
+            fetch(`${SERVER_URL}/api/blocked-ips`).then(r=>r.json()),
+            fetch(`${SERVER_URL}/api/cve-list`).then(r=>r.json()),
+            fetch(`${SERVER_URL}/api/status`).then(r=>r.json())
+        ]);
 
-    renderCVEs(cves);
-    updateThreatLevel(status);
-  } catch(e) {
-    showToast('API Hatası: Sunucu çevrimdışı olabilir.', 'error');
-  }
+        allLogs = logs;
+        document.getElementById('console-wrap').innerHTML = '';
+        logs.forEach(l => appendLogRow(l));
+        document.getElementById('stat-log-count').textContent = logs.length;
+
+        bans.forEach(b => { bannedIPs[b.ip] = b; addBanRow(b); });
+        document.getElementById('stat-total-bans').textContent = Object.keys(bannedIPs).length;
+
+        renderCVEs(cves);
+        updateThreatLevel(status);
+
+    } catch(e) { 
+        showToast('Render API Bağlantı Hatası!', 'error'); 
+        console.error("Hata:", e);
+    }
 }
 
-// --- AKSİYONLAR ---
+// ─── AKSİYONLAR (RENDER'A GÖNDERİLİR) ───
 async function manualBan() {
-  const ip = document.getElementById('manual-ip').value.trim();
-  if (!ip) return;
-  const r = await fetch(`${SERVER_URL}/api/mitigate`, {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ targetIP: ip, attackType: 'Manuel Ban', cveScore: 9.8 })
-  }).then(r=>r.json());
-  showToast(r.message);
-  document.getElementById('manual-ip').value = '';
+    const ip = document.getElementById('manual-ip').value.trim();
+    if (!ip) return;
+    const r = await fetch(`${SERVER_URL}/api/mitigate`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ targetIP: ip, attackType: 'Manuel Ban', cveScore: 9.8 })
+    }).then(r=>r.json());
+    showToast(r.message);
+    document.getElementById('manual-ip').value = '';
 }
 
 async function manualUnban() {
-  const ip = document.getElementById('unban-ip').value.trim();
-  if (!ip) return;
-  const r = await fetch(`${SERVER_URL}/api/unban`, {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ ip })
-  }).then(r=>r.json());
-  showToast(r.message);
-  document.getElementById('unban-ip').value = '';
+    const ip = document.getElementById('unban-ip').value.trim();
+    if (!ip) return;
+    const r = await fetch(`${SERVER_URL}/api/unban`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ ip })
+    }).then(r=>r.json());
+    showToast(r.message);
+    document.getElementById('unban-ip').value = '';
 }
 
 async function mitigateFromPopup() {
-  if (currentThreat) {
-    await fetch(`${SERVER_URL}/api/mitigate`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ targetIP: currentThreat.sourceIP, cveScore: currentThreat.cveScore })
-    });
-  }
-  document.getElementById('police-popup').classList.remove('visible');
-  showToast('🛡️ Tehdit bertaraf edildi');
+    if (currentThreat && currentThreat.sourceIP) {
+        await fetch(`${SERVER_URL}/api/mitigate`, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ targetIP: currentThreat.sourceIP, cveScore: 9.8 })
+        });
+    }
+    document.getElementById('police-popup').classList.remove('visible');
+    showToast('🛡️ Tehdit Bertaraf Edildi');
 }
 
-// --- YARDIMCI FONKSİYONLAR ---
-function normalizeLog(log) {
-  return {
-    id: log?.id || Date.now(),
-    timestamp: log?.timestamp || new Date().toISOString(),
-    sourceIP: log?.sourceIP || log?.ip || '—',
-    attackType: log?.attackType || log?.type || 'Unknown',
-    payload: log?.payload || log?.msg || '-',
-    cveScore: Number(log?.cveScore ?? log?.score ?? 0),
-    action: log?.action || 'LOGGED',
-    severity: log?.severity || 'INFO'
-  };
-}
-
+// ─── GÖRSEL YARDIMCILAR ───
 function formatLogRow(log) {
-  const t = new Date(log.timestamp).toLocaleTimeString('tr-TR');
-  const score = log.cveScore || 0;
-  const cveClass = score >= 9 ? 'crit' : score >= 7 ? 'high' : 'ok';
-  return `<div class="log-row">
-    <span>${t}</span>
-    <span style="color:var(--blue)">${log.sourceIP}</span>
-    <span style="color:orange">${log.attackType}</span>
-    <span title="${log.payload}">${log.payload.substring(0,20)}...</span>
-    <span class="log-cve ${cveClass}">${score}</span>
-    <span class="log-sev">${log.severity}</span>
-    <span class="log-action">${log.action}</span>
-  </div>`;
+    const t = new Date(log.timestamp || Date.now()).toLocaleTimeString('tr-TR');
+    return `<div class="log-row">
+        <span class="log-time">${t}</span>
+        <span class="log-ip">${log.sourceIP || log.ip || '-'}</span>
+        <span class="log-type">${log.attackType || log.type || '-'}</span>
+        <span class="log-payload">${log.payload || log.msg || '-'}</span>
+        <span class="log-cve">${log.cveScore || '-'}</span>
+        <span class="log-action">${log.action || 'DETECTED'}</span>
+    </div>`;
 }
 
 function prependLogRow(log) {
-  const wrap = document.getElementById('console-wrap');
-  wrap.insertAdjacentHTML('afterbegin', formatLogRow(log));
-  if (wrap.children.length > 200) wrap.lastChild.remove();
+    const wrap = document.getElementById('console-wrap');
+    wrap.insertAdjacentHTML('afterbegin', formatLogRow(log));
 }
 
 function appendLogRow(log) {
-  document.getElementById('console-wrap').insertAdjacentHTML('beforeend', formatLogRow(log));
+    document.getElementById('console-wrap').insertAdjacentHTML('beforeend', formatLogRow(log));
 }
 
 function addBanRow(data) {
-  const tbody = document.getElementById('ban-tbody');
-  const t = new Date(data.bannedAt || Date.now()).toLocaleTimeString('tr-TR');
-  tbody.insertAdjacentHTML('afterbegin', `<tr id="ban-row-${data.ip.replace(/[.:]/g,'_')}">
-    <td style="color:var(--red)">${data.ip}</td>
-    <td>${data.reason || 'Saldırı'}</td>
-    <td>${data.cveScore || 9.8}</td>
-    <td>${t}</td>
-    <td><button class="btn btn-green" onclick="manualUnbanIP('${data.ip}')">UNBAN</button></td>
-  </tr>`);
+    const tbody = document.getElementById('ban-tbody');
+    const t = new Date(data.bannedAt || Date.now()).toLocaleTimeString('tr-TR');
+    tbody.insertAdjacentHTML('afterbegin', `<tr>
+        <td class="ban-ip">${data.ip}</td>
+        <td>${data.reason || 'Saldırı'}</td>
+        <td>${data.cveScore || '9.8'}</td>
+        <td>${t}</td>
+        <td><button class="btn btn-green" onclick="unbanIP('${data.ip}')">UNBAN</button></td>
+    </tr>`);
 }
 
-function manualUnbanIP(ip) {
-    document.getElementById('unban-ip').value = ip;
-    manualUnban();
+function renderCVEs(cves) {
+    const container = document.getElementById('cve-list');
+    document.getElementById('cve-count-badge').textContent = cves.length + ' CVE';
+    container.innerHTML = cves.map(c => `
+        <div class="cve-card" onclick="this.classList.toggle('expanded')">
+            <div class="cve-top"><span class="cve-id">${c.id}</span> <span class="cve-score-pill sev-CRITICAL">${c.score}</span></div>
+            <div class="cve-desc">${c.description}</div>
+        </div>
+    `).join('');
 }
 
 function updateThreatLevel(s) {
-  ['secure','elevated','high','critical'].forEach(l => document.getElementById('tlvl-'+l).className = 'tlvl '+l);
-  const info = document.getElementById('threat-info-text');
-  if (s.isMitmAttack) {
-    document.getElementById('tlvl-critical').classList.add('active-critical');
-    info.textContent = "KRİTİK SALDIRI TESPİT EDİLDİ";
-    info.style.color = "var(--red)";
-  } else {
-    document.getElementById('tlvl-secure').classList.add('active-secure');
-    info.textContent = "SİSTEM GÜVENLİ";
-    info.style.color = "var(--green)";
-  }
+    const info = document.getElementById('threat-info-text');
+    if (s.isMitmAttack) {
+        document.getElementById('tlvl-critical').className = 'tlvl critical active-critical';
+        info.textContent = "KRİTİK SALDIRI TESPİT EDİLDİ";
+        info.style.color = "var(--red)";
+    } else {
+        document.getElementById('tlvl-secure').className = 'tlvl secure active-secure';
+        info.textContent = "SİSTEM GÜVENLİ";
+        info.style.color = "var(--green)";
+    }
 }
 
 function resetThreatUI() {
-  document.getElementById('atc-type').textContent = '—';
-  document.getElementById('atc-ip').textContent = '—';
-  document.getElementById('stat-active-threat').textContent = 'YOK';
-  document.getElementById('stat-active-threat').className = 'stat-val';
+    document.getElementById('stat-active-threat').textContent = 'YOK';
+    document.getElementById('atc-type').textContent = '—';
+    document.getElementById('atc-ip').textContent = '—';
 }
 
 function startMitigationAnimation() {
-  let i = 1;
-  const interval = setInterval(() => {
-    const el = document.getElementById('ms'+i);
-    if (el) el.classList.add('done');
-    i++;
-    if (i > 3) clearInterval(interval);
-  }, 1000);
+    document.getElementById('ms1').classList.add('done');
+    setTimeout(() => document.getElementById('ms2').classList.add('done'), 1000);
+    setTimeout(() => document.getElementById('ms3').classList.add('done'), 2000);
 }
 
 function showPolicePopup(data) {
-  document.getElementById('police-detail').innerHTML = `IP: ${data.sourceIP}<br>TİP: ${data.attackType}`;
-  document.getElementById('police-popup').classList.add('visible');
+    document.getElementById('pd-type').textContent = data.attackType;
+    document.getElementById('pd-ip').textContent = data.sourceIP;
+    document.getElementById('police-popup').classList.add('visible');
 }
 
 function acknowledgePolice() {
-  policeAcknowledged = true;
-  document.getElementById('police-popup').classList.remove('visible');
+    policeAcknowledged = true;
+    document.getElementById('police-popup').classList.remove('visible');
 }
 
 function showToast(msg, type='') {
-  const t = document.createElement('div');
-  t.className = 'toast ' + type;
-  t.textContent = msg;
-  document.getElementById('toast-container').appendChild(t);
-  setTimeout(() => t.remove(), 4000);
+    const t = document.createElement('div');
+    t.className = 'toast ' + type;
+    t.textContent = msg;
+    document.getElementById('toast-container').prepend(t);
+    setTimeout(() => t.remove(), 4000);
 }
 
 function clearLogs() {
     document.getElementById('console-wrap').innerHTML = '';
-    document.getElementById('stat-log-count').textContent = '0';
 }
-
-async function renderCVEs(cves) {
-    const list = document.getElementById('cve-list');
-    list.innerHTML = cves.map(c => `
-        <div class="cve-card" onclick="this.classList.toggle('expanded')">
-            <strong>${c.id}</strong> - Skor: ${c.score}
-            <div class="cve-detail">${c.description}</div>
-        </div>
-    `).join('');
-    document.getElementById('cve-count-badge').textContent = cves.length + ' CVE';
-}
-
 </script>
 </body>
 </html>
