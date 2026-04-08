@@ -14,7 +14,7 @@
             --warning: #f1c40f;
             --danger: #e74c3c;
             --dark-blue: #2c3e50;
-            --purple: #8e44ad; /* Yeni renk eklendi */
+            --purple: #8e44ad;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
@@ -71,9 +71,20 @@
             transition: 0.4s;
         }
         
-        .light.red.active { background: #ff3e3e; box-shadow: 0 0 30px #ff3e3e; }
+        .light.red.active    { background: #ff3e3e; box-shadow: 0 0 30px #ff3e3e; }
         .light.yellow.active { background: #ffcc00; box-shadow: 0 0 30px #ffcc00; }
-        .light.green.active { background: #00ff88; box-shadow: 0 0 30px #00ff88; }
+        .light.green.active  { background: #00ff88; box-shadow: 0 0 30px #00ff88; }
+
+        /* Saldırı durumunda tüm ışıklar kırmızı yanar + blink */
+        .light.attack-flash {
+            background: #ff2222;
+            box-shadow: 0 0 30px #ff0000;
+            animation: attackBlink 0.4s infinite;
+        }
+        @keyframes attackBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.2; }
+        }
 
         .stats-grid {
             display: grid;
@@ -91,7 +102,7 @@
         }
 
         .stat-card h4 { font-size: 14px; color: #7f8c8d; text-transform: uppercase; }
-        .stat-card p { font-size: 24px; font-weight: bold; margin-top: 5px; }
+        .stat-card p  { font-size: 24px; font-weight: bold; margin-top: 5px; }
 
         .log-panel {
             background: #1e272e;
@@ -104,7 +115,7 @@
         }
 
         .log-entry { margin-bottom: 8px; border-bottom: 1px solid #3d4e5d; padding-bottom: 4px; }
-        .log-time { color: var(--warning); margin-right: 5px; }
+        .log-time  { color: var(--warning); margin-right: 5px; }
 
         .btn-group {
             display: flex;
@@ -120,11 +131,13 @@
             cursor: pointer;
             font-weight: bold;
             transition: 0.2s;
+            font-size: 14px;
         }
+        button:hover { opacity: 0.85; transform: scale(1.02); }
 
-        .btn-auto { background: var(--success); color: white; }
-        .btn-manual { background: var(--primary); color: white; }
-        .btn-emergency { background: var(--danger); color: white; }
+        .btn-auto      { background: var(--success); color: white; }
+        .btn-manual    { background: var(--primary);  color: white; }
+        .btn-emergency { background: var(--danger);   color: white; }
 
         .green-wave-active {
             animation: pulse 2s infinite;
@@ -132,10 +145,35 @@
         }
 
         @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
+            0%   { opacity: 1; }
+            50%  { opacity: 0.5; }
             100% { opacity: 1; }
         }
+
+        /* Saldırı modu — kırmızı border */
+        body.under-attack {
+            border: 15px solid #e74c3c;
+        }
+
+        /* Saldırı ikaz banner */
+        #attack-banner {
+            display: none;
+            background: linear-gradient(90deg, #7b0000, #cc0020, #7b0000);
+            color: white;
+            text-align: center;
+            padding: 10px 20px;
+            font-weight: bold;
+            font-size: 16px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            animation: bannerPulse 0.6s infinite;
+            letter-spacing: 1px;
+        }
+        @keyframes bannerPulse {
+            0%,100% { opacity: 1; }
+            50%      { opacity: 0.6; }
+        }
+        #attack-banner.active { display: block; }
     </style>
 </head>
 <body>
@@ -148,18 +186,25 @@
     <div id="system-clock">00:00:00</div>
 </header>
 
+<!-- Saldırı ikaz banner -->
+<div id="attack-banner">
+    🚨 SİBER SALDIRI ALGILANDI — TRAFİK IŞIKLARI DEVRE DIŞI 🚨
+</div>
+
 <div class="main-grid">
+    <!-- SOL: Trafik Işığı -->
     <div class="traffic-box">
         <h3>Canlı Durum</h3>
         <div class="traffic-light">
-            <div id="red" class="light red"></div>
+            <div id="red"    class="light red"></div>
             <div id="yellow" class="light yellow"></div>
-            <div id="green" class="light green"></div>
+            <div id="green"  class="light green"></div>
         </div>
         <div id="timer-display" style="font-size: 40px; font-weight: bold;">--</div>
         <p id="mode-text" style="margin-top:10px; font-weight: bold;">MOD: BAĞLANILIYOR...</p>
     </div>
 
+    <!-- ORTA: Bilgi Kartları -->
     <div class="content">
         <!-- Yeşil Dalga Ana Kartı -->
         <div class="stat-card" style="border-left-color: var(--success); margin-bottom: 15px;">
@@ -201,13 +246,15 @@
             </div>
         </div>
 
+        <!-- Kontrol Butonları (BAMLA yok) -->
         <div class="btn-group">
-            <button class="btn-auto" onclick="setMode('AUTO')">OTOMATİK (AKILLI)</button>
-            <button class="btn-manual" onclick="setMode('MANUAL')">MANUEL KONTROL</button>
-            <button class="btn-emergency" onclick="setMode('EMERGENCY')">ACİL DURUM (FLAŞÖR)</button>
+            <button class="btn-auto"      onclick="setMode('AUTO')">⚙️ OTOMATİK (AKILLI)</button>
+            <button class="btn-manual"    onclick="setMode('MANUAL')">🖱️ MANUEL KONTROL</button>
+            <button class="btn-emergency" onclick="setMode('EMERGENCY')">🆘 ACİL (FLAŞÖR)</button>
         </div>
     </div>
 
+    <!-- SAĞ: Log Paneli -->
     <div>
         <h3 style="margin-bottom: 10px;">Sistem Günlüğü (Log)</h3>
         <div class="log-panel" id="log-panel">
@@ -227,85 +274,121 @@
         isMitmAttack: false
     };
 
+    // Saat
     setInterval(() => {
         const now = new Date();
         document.getElementById('system-clock').innerText = now.toLocaleTimeString('tr-TR');
     }, 1000);
 
+    // Traffic update
     socket.on('traffic-update', (data) => {
         updateUI(data);
     });
 
     function updateUI(data) {
         const targetSpeedEl = document.getElementById('target-speed');
-        const speedBar = document.getElementById('speed-bar');
-        const waveStatus = document.getElementById('wave-status');
+        const speedBar      = document.getElementById('speed-bar');
+        const waveStatus    = document.getElementById('wave-status');
+        const modeText      = document.getElementById('mode-text');
+        const banner        = document.getElementById('attack-banner');
 
-        // Saldırı Kontrolü
         if (data.isMitmAttack) {
-            document.body.style.border = "15px solid red";
-            document.getElementById('mode-text').innerText = "🚨 KRİTİK HATA: SİBER SALDIRI!";
-            document.getElementById('mode-text').style.color = "red";
-            addLog("⚠️ UYARI: Paket Manipülasyonu Tespit Edildi!");
+            // ===== SALDIRI MODU =====
+            document.body.classList.add('under-attack');
+            banner.classList.add('active');
             
-            // Hız Göstergesi Güncelleme (Saldırı Durumu)
-            targetSpeedEl.innerText = "DEVRE DIŞI";
-            targetSpeedEl.style.color = "var(--danger)";
-            speedBar.style.width = "100%";
-            speedBar.style.background = "var(--danger)";
-            waveStatus.innerText = "SENKRONİZASYON KAYBI";
-            waveStatus.className = "";
-        } else {
-            document.body.style.border = "none";
-            document.getElementById('mode-text').innerText = "MOD: " + (data.mode || "OTOMATİK");
-            document.getElementById('mode-text').style.color = "var(--dark-blue)";
+            modeText.innerText = '🚨 KRİTİK HATA: SİBER SALDIRI!';
+            modeText.style.color = 'var(--danger)';
 
-            // Hız Tavsiyesi Hesaplama (Yoğunluğa bağlı simülasyon)
-            let recommendedSpeed = 70 - (data.carCount / 2); 
-            if(recommendedSpeed < 40) recommendedSpeed = 40;
-            
-            targetSpeedEl.innerText = Math.round(recommendedSpeed) + " km/s";
-            targetSpeedEl.style.color = "var(--primary)";
-            
-            let barWidth = ((recommendedSpeed - 40) / (70 - 40)) * 100;
-            speedBar.style.width = barWidth + "%";
-            speedBar.style.background = "var(--success)";
-            
-            waveStatus.innerText = "AKTİF - %85 VERİMLİLİK";
-            waveStatus.className = "green-wave-active";
+            // Tüm ışıklar kırmızı yanıp söner
+            document.querySelectorAll('.light').forEach(l => {
+                l.classList.remove('active');
+                l.classList.add('attack-flash');
+            });
+
+            // Hız göstergesi devre dışı
+            targetSpeedEl.innerText = 'DEVRE DIŞI';
+            targetSpeedEl.style.color = 'var(--danger)';
+            speedBar.style.width  = '100%';
+            speedBar.style.background = 'var(--danger)';
+
+            waveStatus.innerText    = 'SENKRONİZASYON KAYBI';
+            waveStatus.className    = '';
+            waveStatus.style.color  = 'var(--danger)';
+
+            document.getElementById('timer-display').innerText = '!';
+            document.getElementById('sensor-health').innerText = 'HATA';
+            document.getElementById('sensor-health').style.color = 'var(--danger)';
+
+            addLog('⚠️ UYARI: Paket Manipülasyonu Tespit Edildi! Trafik ışıkları durduruldu.');
+
+        } else {
+            // ===== NORMAL MOD =====
+            document.body.classList.remove('under-attack');
+            banner.classList.remove('active');
+
+            modeText.innerText     = 'MOD: ' + (data.mode || 'OTOMATİK');
+            modeText.style.color   = 'var(--dark-blue)';
+
+            // Saldırı flash sınıfını kaldır, normal ışıkları güncelle
+            document.querySelectorAll('.light').forEach(l => l.classList.remove('active', 'attack-flash'));
+            const activeLight = document.getElementById(data.light);
+            if (activeLight) activeLight.classList.add('active');
+
+            // Hız tavsiyesi
+            let recommendedSpeed = 70 - (data.carCount / 2);
+            if (recommendedSpeed < 40) recommendedSpeed = 40;
+
+            targetSpeedEl.innerText  = Math.round(recommendedSpeed) + ' km/s';
+            targetSpeedEl.style.color = 'var(--primary)';
+
+            const barWidth = ((recommendedSpeed - 40) / (70 - 40)) * 100;
+            speedBar.style.width      = barWidth + '%';
+            speedBar.style.background = 'var(--success)';
+
+            waveStatus.innerText    = 'AKTİF - %85 VERİMLİLİK';
+            waveStatus.className    = 'green-wave-active';
+            waveStatus.style.color  = '';
+
+            document.getElementById('sensor-health').innerText = 'Aktif %98';
+            document.getElementById('sensor-health').style.color = '';
+
+            // Timer & metrikler
+            document.getElementById('timer-display').innerText = data.timer + 's';
         }
 
-        // Işıkları Güncelle
-        document.querySelectorAll('.light').forEach(l => l.classList.remove('active'));
-        const activeLight = document.getElementById(data.light);
-        if (activeLight) activeLight.classList.add('active');
+        // Her koşulda güncellenenler
+        document.getElementById('car-count').innerText  = (data.carCount || 0) + ' Araç/Dk';
+        document.getElementById('wait-time').innerText  = ((data.timer || 0) + 5) + ' Saniye';
 
-        // Metrikleri Yazdır
-        document.getElementById('timer-display').innerText = data.timer + "s";
-        document.getElementById('car-count').innerText = data.carCount + " Araç/Dk";
-        document.getElementById('wait-time').innerText = (data.timer + 5) + " Saniye";
-        
-        const next = { red: 'YEŞİL', green: 'SARI', yellow: 'KIRMIZI' };
-        document.getElementById('next-phase').innerText = next[data.light] || "BELİRSİZ";
+        const nextMap = { red: 'YEŞİL', green: 'SARI', yellow: 'KIRMIZI' };
+        document.getElementById('next-phase').innerText = data.isMitmAttack ? 'DURUM BELİRSİZ' : (nextMap[data.light] || 'BELİRSİZ');
     }
 
     function addLog(msg) {
         const logPanel = document.getElementById('log-panel');
-        const time = new Date().toLocaleTimeString('tr-TR');
+        const time     = new Date().toLocaleTimeString('tr-TR');
         logPanel.innerHTML = `<div class="log-entry"><span class="log-time">[${time}]</span> ${msg}</div>` + logPanel.innerHTML;
+        // Çok fazla log birikimine izin verme
+        const entries = logPanel.querySelectorAll('.log-entry');
+        if (entries.length > 100) entries[entries.length - 1].remove();
     }
 
     function setMode(mode) {
-        addLog(`İstek Gönderildi: ${mode}`);
-        socket.emit('set-mode', { mode: mode }); 
+        addLog('İstek Gönderildi: ' + mode);
+        socket.emit('set-mode', { mode: mode });
     }
 
     socket.on('connect_error', () => {
-        addLog("Bağlantı Hatası: Sunucuya ulaşılamıyor...");
+        addLog('❌ Bağlantı Hatası: Sunucuya ulaşılamıyor...');
     });
 
     socket.on('connect', () => {
-        addLog("✅ Sunucuya başarıyla bağlandı.");
+        addLog('✅ Sunucuya başarıyla bağlandı.');
+    });
+
+    socket.on('disconnect', () => {
+        addLog('⚠️ Sunucu bağlantısı kesildi. Yeniden bağlanılıyor...');
     });
 </script>
 </body>
