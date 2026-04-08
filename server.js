@@ -46,13 +46,13 @@ setInterval(() => {
         holdingRegisters.writeUInt16BE(trafficStatus.timer, 2);               // Register 1: Timer
         holdingRegisters.writeUInt16BE(trafficStatus.carCount, 4);           // Register 2: Araç
     } catch (err) {
-        console.error("Modbus Register Yazma Hatası");
+        // Konsol kirliliğini önlemek için hata durumunda sessiz kalabiliriz
     }
 }, 1000);
 
 // --- GÜVENLİK KALKANI (MIDDLEWARE) ---
 const securityShield = (req, res, next) => {
-    const clientIP = req.ip || req.connection.remoteAddress;
+    const clientIP = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
     // 1. Kontrol: IP Banlı mı?
     if (blacklistedIPs.has(clientIP)) {
@@ -63,7 +63,7 @@ const securityShield = (req, res, next) => {
         });
     }
 
-    // 2. Kontrol: Rate Limiting (Basit Brute Force Koruması)
+    // 2. Kontrol: Rate Limiting
     requestCounts[clientIP] = (requestCounts[clientIP] || 0) + 1;
     if (requestCounts[clientIP] > THRESHOLD) {
         blacklistedIPs.add(clientIP);
@@ -83,11 +83,16 @@ app.post('/api/mitigate', (req, res) => {
 
     if (parseFloat(cveScore) >= 7.0) {
         blacklistedIPs.add(targetIP);
-        trafficStatus.lastMitigation = `IP ${targetIP} BANNED (CVE: ${cveScore})`;
-        trafficStatus.isMitmAttack = false; // Saldırıyı durdur
+        
+        // KRİTİK DÜZELTME: Saldırgan banlandığı an sistemi normale döndür
+        trafficStatus.isMitmAttack = false; 
         trafficStatus.networkSecurity = "Safe (Threat Neutralized)";
+        trafficStatus.lastMitigation = `IP ${targetIP} BANNED (CVE: ${cveScore})`;
         
         console.log(`[SAVUNMA] ${targetIP} OTOMATİK banlandı. Tehdit: ${attackType}`);
+
+        // Tüm panelleri (Belediye & SOC) anında "Normal" duruma çek
+        io.emit('traffic-update', trafficStatus); 
 
         return res.json({ 
             success: true, 
@@ -99,12 +104,14 @@ app.post('/api/mitigate', (req, res) => {
     res.json({ success: true, action: "LOGGED", message: "Düşük risk kaydedildi." });
 });
 
-// Manuel Saldırı Simülasyonu (Test için)
+// Manuel Saldırı Simülasyonu
 app.post('/api/attack', (req, res) => {
     trafficStatus.isMitmAttack = req.body.active;
     trafficStatus.networkSecurity = req.body.active ? "Under Attack" : "Safe";
+    
+    // Değişikliği anında duyur
     io.emit('traffic-update', trafficStatus);
-    res.json({ status: "OK" });
+    res.json({ status: "OK", attackStatus: trafficStatus.isMitmAttack });
 });
 
 // --- TRAFİK DÖNGÜSÜ ---
@@ -118,6 +125,7 @@ setInterval(() => {
             trafficStatus.timer = trafficStatus.light === "yellow" ? 3 : 15;
         }
     } else {
+        // Saldırı altındayken veriyi boz
         trafficStatus.light = "glitch";
         trafficStatus.timer = Math.floor(Math.random() * 99);
     }
@@ -125,12 +133,12 @@ setInterval(() => {
 }, 1000);
 
 // --- SUNUCULARI BAŞLAT ---
-const API_PORT = 3000;
+const API_PORT = process.env.PORT || 3000;
 server.listen(API_PORT, () => {
-    console.log(`🚀 API ve Webhook Sunucusu: http://localhost:${API_PORT}`);
+    console.log(`🚀 API ve Webhook Sunucusu: ${API_PORT} portunda aktif.`);
 });
 
-const MODBUS_PORT = 502; // Hata alırsan 5020 yap
+const MODBUS_PORT = 502; // Render'da hata alırsan 5020 yapmayı unutma
 netServer.listen(MODBUS_PORT, () => {
     console.log(`📟 Modbus TCP Sunucusu: ${MODBUS_PORT} portunda aktif.`);
 });
