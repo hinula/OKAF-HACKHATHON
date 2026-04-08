@@ -44,13 +44,13 @@ CYBERFİLTER tarafından yapılan akıllı trafik ışıkları için geliştiril
 ```
 OKAF-HACKHATHON/
 │
-├── server-fixed.js          
-├── socserver-fixed.html     
+├── server.js          
+├── socserver.html     
 ├── index.html               
 │
 ├── package.json             
 ├── attack.py                
-└── README-SETUP.md          
+└── README.md          
 ```
 
 ## 🚀 Kurulum
@@ -187,11 +187,11 @@ attack.py ile
 ## 🐛 Sorun Giderme
 
 ### Sorun 1: "API bağlantı hatası: Unexpected token '<'"
-**Çözüm:** `server-fixed.js` kullanıldığından emin olun. Eski `server.js` dosyası bazı endpoint'leri eksik.
+**Çözüm:** `server.js` kullanıldığından emin olun. Eski `server.js` dosyası bazı endpoint'leri eksik.
 
 ### Sorun 2: Loglar görünmüyor
 **Çözüm:** 
-1. Backend çalışıyor mu? `node server-fixed.js`
+1. Backend çalışıyor mu? `node server.js`
 2. Socket.IO bağlantısı kuruldu mu? (Header'da yeşil nokta)
 3. Browser console'u kontrol edin
 
@@ -215,23 +215,9 @@ attack.py ile
 1. Repository'i GitHub'a push edin
 2. Render.com'da "New Web Service" oluşturun
 3. Build Command: `npm install`
-4. Start Command: `node server-fixed.js`
+4. Start Command: `node server.js`
 5. Port: 3000 (AUTO)
 
-### Vercel
-
-```bash
-# vercel.json oluşturun
-{
-  "version": 2,
-  "builds": [
-    { "src": "server-fixed.js", "use": "@vercel/node" }
-  ],
-  "routes": [
-    { "src": "/(.*)", "dest": "server-fixed.js" }
-  ]
-}
-```
 
 ## 🔐 Güvenlik Notları
 
@@ -241,24 +227,22 @@ attack.py ile
 - 🔑 API key/token implementasyonu ekleyin
 - 📊 Log rotation implementasyonu ekleyin (production)
 
-## 👨‍💻 Geliştirici Notları
 
 ### Rate Limit Değiştirme
 ```javascript
-// server-fixed.js, satır 19
+// server.js, satır 19
 const RATE_LIMIT_THRESHOLD = 100; // İstek/saniye
-const COOLDOWN_DURATION = 300000; // 5 dakika (ms)
-```
+const COOLD
 
 ### Log Buffer Boyutu
 ```javascript
-// server-fixed.js, satır 18
+// server.js, satır 18
 const MAX_LOGS = 500; // Maksimum log sayısı
-```
+``
 
 ### CVE Ekleme
 ```javascript
-// server-fixed.js, satır 23-62
+// server.js, satır 23-62
 const CVE_DATABASE = [
   {
     id: "CVE-2024-XXXX",
@@ -273,4 +257,4 @@ const CVE_DATABASE = [
   }
 ];
 ```
-**Made with ❤️ for OKAF Hackathon**
+**Made with CYBERFİLTER for OKAF Hackathon**
