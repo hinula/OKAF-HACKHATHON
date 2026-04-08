@@ -6,15 +6,20 @@
     "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": [
+    "smart-city",
+    "traffic-control",
+    "cyber-security",
+    "soc",
+    "modbus"
+  ],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "Akıllı Trafik Işığı ve SOC Güvenlik Yönetim Sistemi",
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "jsmodbus": "^4.0.10",
-    "net": "^1.0.2",
     "socket.io": "^4.7.2"
   }
 }
