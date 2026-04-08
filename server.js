@@ -46,15 +46,27 @@ setInterval(() => {
         holdingRegisters.writeUInt16BE(trafficStatus.timer, 2);               // Register 1: Timer
         holdingRegisters.writeUInt16BE(trafficStatus.carCount, 4);           // Register 2: Araç
     } catch (err) {
-        // Konsol kirliliğini önlemek için hata durumunda sessiz kalabiliriz
+        // Hata durumunda sessiz kal
     }
 }, 1000);
+
+// --- KENDİ KENDİNİ ONARMA FONKSİYONU ---
+const recoverSystem = () => {
+    console.log("🛠️ Sistem Onarma Protokolü Başlatıldı...");
+    trafficStatus.isMitmAttack = false;
+    trafficStatus.light = "red"; // Güvenlik için kırmızıdan başla
+    trafficStatus.timer = 10;
+    trafficStatus.networkSecurity = "Safe (Recovered)";
+    trafficStatus.lastMitigation = "Auto-Recovery Triggered";
+    
+    io.emit('traffic-update', trafficStatus);
+    console.log("✅ Sistem başarıyla fabrika ayarlarına döndü.");
+};
 
 // --- GÜVENLİK KALKANI (MIDDLEWARE) ---
 const securityShield = (req, res, next) => {
     const clientIP = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
-    // 1. Kontrol: IP Banlı mı?
     if (blacklistedIPs.has(clientIP)) {
         return res.status(403).json({
             status: "BLOCKED",
@@ -63,7 +75,6 @@ const securityShield = (req, res, next) => {
         });
     }
 
-    // 2. Kontrol: Rate Limiting
     requestCounts[clientIP] = (requestCounts[clientIP] || 0) + 1;
     if (requestCounts[clientIP] > THRESHOLD) {
         blacklistedIPs.add(clientIP);
@@ -77,31 +88,24 @@ app.use(securityShield);
 
 // --- API ENDPOINTLERI ---
 
-// SOC'dan gelen müdahale isteği
+// MODİFİYE EDİLMİŞ MİTİGASYON (SAVUNMA)
 app.post('/api/mitigate', (req, res) => {
-    const { targetIP, attackType, cveScore } = req.body;
+    const { targetIP, cveScore, attackType } = req.body;
 
     if (parseFloat(cveScore) >= 7.0) {
         blacklistedIPs.add(targetIP);
+        console.log(`[SAVUNMA] ${targetIP} OTOMATİK banlandı. Tehdit: ${attackType || 'Bilinmiyor'}`);
         
-        // KRİTİK DÜZELTME: Saldırgan banlandığı an sistemi normale döndür
-        trafficStatus.isMitmAttack = false; 
-        trafficStatus.networkSecurity = "Safe (Threat Neutralized)";
-        trafficStatus.lastMitigation = `IP ${targetIP} BANNED (CVE: ${cveScore})`;
-        
-        console.log(`[SAVUNMA] ${targetIP} OTOMATİK banlandı. Tehdit: ${attackType}`);
-
-        // Tüm panelleri (Belediye & SOC) anında "Normal" duruma çek
-        io.emit('traffic-update', trafficStatus); 
+        // Saldırı bayrağını indir ve onarma fonksiyonunu çağır
+        recoverSystem(); 
 
         return res.json({ 
             success: true, 
-            action: "AUTO_BAN", 
-            message: `Kritik tehdit (${cveScore}) bertaraf edildi.` 
+            action: "AUTO_RECOVER", 
+            message: "Saldırgan banlandı ve sistem onarıldı." 
         });
     }
-
-    res.json({ success: true, action: "LOGGED", message: "Düşük risk kaydedildi." });
+    res.json({ success: false, message: "Risk puanı onarma için yetersiz." });
 });
 
 // Manuel Saldırı Simülasyonu
@@ -109,7 +113,6 @@ app.post('/api/attack', (req, res) => {
     trafficStatus.isMitmAttack = req.body.active;
     trafficStatus.networkSecurity = req.body.active ? "Under Attack" : "Safe";
     
-    // Değişikliği anında duyur
     io.emit('traffic-update', trafficStatus);
     res.json({ status: "OK", attackStatus: trafficStatus.isMitmAttack });
 });
@@ -125,12 +128,19 @@ setInterval(() => {
             trafficStatus.timer = trafficStatus.light === "yellow" ? 3 : 15;
         }
     } else {
-        // Saldırı altındayken veriyi boz
         trafficStatus.light = "glitch";
         trafficStatus.timer = Math.floor(Math.random() * 99);
     }
     io.emit('traffic-update', trafficStatus);
 }, 1000);
+
+// Watchdog: Her 10 saniyede bir kontrol et
+setInterval(() => {
+    if (trafficStatus.light === "glitch" && !trafficStatus.isMitmAttack) {
+        console.log("🚨 Tutarsızlık Tespit Edildi: Işık bozuk ama aktif saldırı yok. Onarılıyor...");
+        recoverSystem();
+    }
+}, 10000);
 
 // --- SUNUCULARI BAŞLAT ---
 const API_PORT = process.env.PORT || 3000;
@@ -138,7 +148,7 @@ server.listen(API_PORT, () => {
     console.log(`🚀 API ve Webhook Sunucusu: ${API_PORT} portunda aktif.`);
 });
 
-const MODBUS_PORT = 502; // Render'da hata alırsan 5020 yapmayı unutma
+const MODBUS_PORT = 502; // Render'da 502 hata verirse 5020 yapın
 netServer.listen(MODBUS_PORT, () => {
     console.log(`📟 Modbus TCP Sunucusu: ${MODBUS_PORT} portunda aktif.`);
 });
