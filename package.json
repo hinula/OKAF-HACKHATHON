@@ -8,14 +8,13 @@
   },
   "keywords": [
     "smart-city",
-    "traffic-control",
     "cyber-security",
-    "soc",
-    "modbus"
+    "modbus",
+    "iot-security"
   ],
   "author": "",
   "license": "ISC",
-  "description": "Akıllı Trafik Işığı ve SOC Güvenlik Yönetim Sistemi",
+  "description": "Akıllı Trafik Işığı ve Öz-Onarım Özellikli SOC Yönetim Sistemi",
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.18.2",
