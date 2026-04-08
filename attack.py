@@ -33,18 +33,22 @@ ATTACK_SCENARIOS = {
 }
 
 def send_attack_to_server(attack_type, payload, score):
-    """Saldırıyı Render üzerindeki gerçek sunucuya iletir."""
+    """Saldırıyı iletir, eğer 403 (Ban) dönerse saldırıyı durdurur."""
     try:
-        # Sunucudaki /api/attack endpoint'ini tetikler
-        # Bu işlem belediye panelindeki ışıkları bozar
-        requests.post(f"{RENDER_SERVER_URL}/api/attack", json={"active": True})
+        response = requests.post(
+            f"{RENDER_SERVER_URL}/api/attack", 
+            json={"active": True},
+            timeout=2 # İstek çok uzun sürmesin
+        )
         
-        # Ayrıca SOC paneline detaylı log düşmesi için mitigation endpointine de veri yollayabiliriz
-        # veya backend'de bu veriyi işleyecek bir yapı kurabiliriz.
-        return True
+        if response.status_code == 403:
+            # Sunucu bizi banlamış!
+            st.session_state.is_banned = True
+            return "BANNED"
+        
+        return "SENT" if response.status_code == 200 else "FAILED"
     except Exception as e:
-        return False
-
+        return "ERROR"
 def main():
     st.set_page_config(page_title="Red Team Attack Panel", layout="wide")
     
@@ -70,11 +74,12 @@ def main():
     if "attack_history" not in st.session_state:
         st.session_state.attack_history = []
 
-    if is_active:
-        payload = random.choice(ATTACK_SCENARIOS[selected_attack]["payloads"])
-        cve = ATTACK_SCENARIOS[selected_attack]["cve_score"]
-        
-        # --- GERÇEK SUNUCUYA GÖNDER ---
+  if st.session_state.get("is_banned", False):
+        st.error("🚫 ERİŞİM ENGELLENDİ: Sunucu tarafından banlandınız!")
+        if st.button("Banı Kaldırmayı Dene (Yeni IP/Proxy Simulation)"):
+            st.session_state.is_banned = False
+        return 
+      
         success = send_attack_to_server(selected_attack, payload, cve)
         
         new_event = {
