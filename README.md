@@ -64,3 +64,8 @@ Sistem bir saldırı algıladığında aşağıdaki **otomatik savunma** adımla
 ├── attack.py           # Red Team Saldırı Paneli (Python/Streamlit)
 ├── package.json        # Node.js bağımlılıkları ve konfigürasyonu
 └── README.md           # Proje dökümantasyonu
+````
+## Site Linklerimiz
+* https://okaf-hackhathon.vercel.app/socserver.html = SOC Panel
+* https://okaf-hackhathon.vercel.app/ = Trafik Işığı Yönetim Paneli
+* https://okaf-hackhathon-pzdvnr4d58peadaatbanhy.streamlit.app/ = Red Team Saldırı Paneli
